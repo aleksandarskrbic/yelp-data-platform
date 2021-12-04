@@ -6,8 +6,20 @@ import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.regions.Regions
 import com.amazonaws.services.s3.AmazonS3ClientBuilder
 import com.amazonaws.services.s3.model.UploadPartRequest
+import izumi.logstage.api.IzLogger
+import izumi.logstage.api.routing.StaticLogRouter
+import logstage.LogZIO
+import zio.{ExitCode, Has, ULayer, URIO, ZLayer}
 
 import java.io.File
+
+object Logging {
+  private val logger = IzLogger()
+
+  StaticLogRouter.instance.setup(logger.router)
+
+  val live = ZLayer.succeed(LogZIO.withFiberId(logger))
+}
 
 object Main extends App {
 
@@ -60,7 +72,6 @@ object Main extends App {
       .withFileOffset(filePosition)
       .withFile(file)
       .withPartSize(partSize)
-      .withMD5Digest()
     val uploadResult = s3Client.uploadPart(uploadRequest)
     partETags.add(uploadResult.getPartETag)
 
