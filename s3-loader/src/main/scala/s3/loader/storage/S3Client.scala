@@ -3,27 +3,34 @@ package s3.loader.storage
 import zio._
 import logstage.LogZIO
 import logstage.LogZIO.log
-import s3.loader.config.AppConfig
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import com.amazonaws.services.s3.model._
+import com.amazonaws.services.s3.AmazonS3
+import s3.loader.storage.UploadService.UploadMetadata
 
-final class S3Client(storageConfig: AppConfig.Storage) {
-  def get: ZIO[LogZIO, Nothing, AmazonS3] =
+final class S3Client(s3: AmazonS3) {
+  def initMultipartUpload(
+    uploadMetadata: UploadMetadata
+  ): ZIO[LogZIO, Throwable, InitiateMultipartUploadResult] =
     (for {
-      _ <- log.info("Creating S3 client")
-      client <- ZIO.effect {
-                  AmazonS3ClientBuilder
-                    .standard()
-                    .withEndpointConfiguration(storageConfig.endpointConfiguration)
-                    .withPathStyleAccessEnabled(true)
-                    .withCredentials(storageConfig.credentials.toAwsCredentials)
-                    .build()
-                }
-    } yield client).onError(error => log.error(s"Failed to create S3 client $error")).orDie
+      response <- ZIO.effect(s3.initiateMultipartUpload(uploadMetadata.initRequest))
+      _        <- log.info(s"Initiating multipart upload with uploadId=${response.getUploadId}")
+    } yield response).onError(error => log.error(s"Failed to init multipart upload $error"))
+
+  def completeMultipartUpload(
+    completeRequest: CompleteMultipartUploadRequest
+  ): ZIO[LogZIO, Throwable, CompleteMultipartUploadResult] =
+    (for {
+      _        <- log.info(s"Sending complete request for a uploadId=${completeRequest.getUploadId}")
+      response <- ZIO.effect(s3.completeMultipartUpload(completeRequest))
+    } yield response).onError(error => log.error(s"Failed to complete multipart upload $error"))
+
+  def uploadPart(uploadRequest: UploadPartRequest): Task[UploadPartResult] =
+    ZIO.effect(s3.uploadPart(uploadRequest))
 }
 
 object S3Client {
   lazy val live = (for {
-    appConfig    <- ZIO.service[AppConfig]
-    storageConfig = appConfig.storage
-  } yield new S3Client(storageConfig)).toLayer
+    s3ClientWrapper <- ZIO.service[S3ClientWrapper]
+    amazonS3Client  <- s3ClientWrapper.get
+  } yield new S3Client(amazonS3Client)).toLayer
 }
