@@ -1,12 +1,12 @@
-package s3.loader.config
+package s3.loader.common
 
 import zio._
 import zio.config.read
 import com.typesafe.config.ConfigFactory
 import zio.config.typesafe.TypesafeConfigSource
 import zio.config.magnolia.DeriveConfigDescriptor
-import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 import com.amazonaws.client.builder.AwsClientBuilder
+import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 
 final case class AppConfig(storage: AppConfig.Storage, upload: AppConfig.Upload)
 

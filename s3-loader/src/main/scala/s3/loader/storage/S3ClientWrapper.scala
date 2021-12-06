@@ -3,7 +3,7 @@ package s3.loader.storage
 import zio._
 import logstage.LogZIO
 import logstage.LogZIO.log
-import s3.loader.config.AppConfig
+import s3.loader.common.AppConfig
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 
 final class S3ClientWrapper(storageConfig: AppConfig.Storage) {

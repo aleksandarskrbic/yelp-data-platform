@@ -1,12 +1,13 @@
-package s3.loader.storage
+package s3.loader.service
 
 import zio._
 import java.io.File
 import logstage.LogZIO
-import s3.loader.config.AppConfig
-import s3.loader.storage.UploadService.UploadMetadata
-import collection.JavaConverters._
+import s3.loader.common.AppConfig
+import s3.loader.storage.S3Client
+import s3.loader.model.UploadMetadata
 import com.amazonaws.services.s3.model._
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) {
@@ -15,7 +16,7 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
       metadata       <- ZIO.succeed(createUploadMetadata(file))
       initResponse   <- s3Client.initMultipartUpload(metadata)
       requests       <- ZIO.succeed(createRequests(file, initResponse.getUploadId, metadata))
-      responses      <- ZIO.foreachParN(4)(requests)(s3Client.uploadPart)
+      responses      <- ZIO.foreachParN(64)(requests)(s3Client.uploadPart)
       completeRequest = createCompleteRequest(metadata, initResponse.getUploadId, responses)
       completed      <- s3Client.completeMultipartUpload(completeRequest)
     } yield completed
@@ -53,7 +54,7 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
     val requests = new ListBuffer[UploadPartRequest]()
 
     while (pos < contentLength) {
-      partSize = Math.min(partSize, (contentLength - pos))
+      partSize = Math.min(partSize, contentLength - pos)
 
       val uploadRequest = new UploadPartRequest()
         .withBucketName(uploadMetadata.bucketName)
@@ -75,8 +76,6 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
 }
 
 object UploadService {
-  final case class UploadMetadata(filename: String, bucketName: String, initRequest: InitiateMultipartUploadRequest)
-
   lazy val live = (for {
     s3Client     <- ZIO.service[S3Client]
     appConfig    <- ZIO.service[AppConfig]
