@@ -18,7 +18,7 @@ final class S3ClientWrapper(storageConfig: AppConfig.Storage) {
                     .withCredentials(storageConfig.credentials.toAwsCredentials)
                     .build()
                 }
-    } yield client).onError(error => log.error(s"Failed to create S3 client $error")).orDie
+    } yield client).onError(e => log.error(s"Failed to create S3 client $e")).orDie
 }
 
 object S3ClientWrapper {

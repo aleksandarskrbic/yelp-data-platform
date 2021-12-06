@@ -2,7 +2,6 @@ package s3.loader
 
 import zio._
 import zio.magic._
-
 import logstage.LogZIO.log
 import s3.loader.service.{LoaderService, UploadService}
 import s3.loader.common.{AppConfig, Logging}
@@ -13,9 +12,17 @@ object S3LoaderApp extends zio.App {
     (for {
       _             <- log.info("Starting s3-loader")
       loaderService <- ZIO.service[LoaderService]
-      files         <- loaderService.start
-      _             <- ZIO.effect(println(files.mkString("Array(", ", ", ")")))
+      _             <- loaderService.start
+      _             <- log.info(s"Successfully uploaded all files.")
     } yield ())
-      .inject(AppConfig.live, Logging.live, S3ClientWrapper.live, S3Client.live, UploadService.live, LoaderService.live)
+      .inject(
+        ZEnv.live,
+        AppConfig.live,
+        Logging.live,
+        S3ClientWrapper.live,
+        S3Client.live,
+        UploadService.live,
+        LoaderService.live
+      )
       .exitCode
 }

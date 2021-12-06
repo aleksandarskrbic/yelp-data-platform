@@ -1,22 +1,21 @@
 package s3.loader.service
 
 import zio._
+import java.io.File
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
-import s3.loader.storage.S3Client
-
-import java.io.File
 
 final class LoaderService(appConfig: AppConfig, uploadService: UploadService) {
-  def start = ZIO.effect(createRootDirectory).flatMap { rootDirectory =>
-    ZIO
-      .effect(rootDirectory.list())
-      .onError(error => log.error(s"Unable to list files in directory. $error").as(List.empty))
-      .flatMap(files => ZIO.succeed(files))
-  }
+  def start =
+    for {
+      rootDirectory <- ZIO.effect(createRootDirectory)
+      filesToUpload <- ZIO
+                         .effect(Chunk.fromArray(rootDirectory.listFiles()))
+                         .onError(e => log.error(s"Unable to list files in directory. $e").as(Chunk.empty[File]))
+      result <- ZIO.foreachParN(filesToUpload.size)(filesToUpload)(uploadService.upload)
+    } yield result
 
-  private def createRootDirectory: File =
-    new File(appConfig.upload.directory)
+  private def createRootDirectory: File = new File(appConfig.upload.directory)
 }
 
 object LoaderService {

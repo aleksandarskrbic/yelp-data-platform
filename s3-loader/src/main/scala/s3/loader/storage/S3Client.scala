@@ -14,7 +14,7 @@ final class S3Client(s3: AmazonS3) {
     (for {
       response <- ZIO.effect(s3.initiateMultipartUpload(uploadMetadata.initRequest))
       _        <- log.info(s"Initiating multipart upload with uploadId=${response.getUploadId}")
-    } yield response).tapError(error => log.error(s"Failed to init multipart upload $error"))
+    } yield response).tapError(e => log.error(s"Failed to init multipart upload $e"))
 
   def completeMultipartUpload(
     completeRequest: CompleteMultipartUploadRequest
@@ -22,7 +22,7 @@ final class S3Client(s3: AmazonS3) {
     (for {
       _        <- log.info(s"Sending complete request for a uploadId=${completeRequest.getUploadId}")
       response <- ZIO.effect(s3.completeMultipartUpload(completeRequest))
-    } yield response).tapError(error => log.error(s"Failed to complete multipart upload $error"))
+    } yield response).tapError(e => log.error(s"Failed to complete multipart upload $e"))
 
   def uploadPart(uploadRequest: UploadPartRequest): Task[UploadPartResult] =
     ZIO.effect(s3.uploadPart(uploadRequest))
