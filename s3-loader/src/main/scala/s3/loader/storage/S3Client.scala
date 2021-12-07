@@ -1,31 +1,52 @@
 package s3.loader.storage
 
 import zio._
+import zio.clock._
+import zio.duration._
 import logstage.LogZIO
 import logstage.LogZIO.log
-import s3.loader.model.UploadMetadata
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.AmazonS3
+import s3.loader.model.{UploadMetadata, UploadPart}
 
 final class S3Client(s3: AmazonS3) {
   def initMultipartUpload(
     uploadMetadata: UploadMetadata
-  ): ZIO[LogZIO, Throwable, InitiateMultipartUploadResult] =
-    (for {
-      response <- ZIO.effect(s3.initiateMultipartUpload(uploadMetadata.initRequest))
-      _        <- log.info(s"Initiating multipart upload with uploadId=${response.getUploadId}")
-    } yield response).tapError(e => log.error(s"Failed to init multipart upload $e"))
+  ): ZIO[LogZIO with Clock, Throwable, InitiateMultipartUploadResult] =
+    ZIO
+      .effect(s3.initiateMultipartUpload(uploadMetadata.initRequest))
+      .tap(response => log.info(s"Initiated multipart upload. ${response.getUploadId}"))
+      .retry(Schedule.exponential(50.millis) && Schedule.recurs(3))
+      .foldM(
+        error => log.error(s"Failed to init multipart upload $error") *> ZIO.fail(error),
+        response => log.info(s"Successfully initiated upload ${response.getUploadId} ") *> ZIO.succeed(response)
+      )
 
   def completeMultipartUpload(
     completeRequest: CompleteMultipartUploadRequest
-  ): ZIO[LogZIO, Throwable, CompleteMultipartUploadResult] =
+  ): ZIO[LogZIO with Clock, Throwable, CompleteMultipartUploadResult] =
     (for {
-      _        <- log.info(s"Sending complete request for a uploadId=${completeRequest.getUploadId}")
+      _        <- log.info(s"Sending complete request for a ${completeRequest.getUploadId}")
       response <- ZIO.effect(s3.completeMultipartUpload(completeRequest))
-    } yield response).tapError(e => log.error(s"Failed to complete multipart upload $e"))
+    } yield response)
+      .retry(Schedule.exponential(50.millis) && Schedule.recurs(3))
+      .foldM(
+        error => log.error(s"Failed to complete multipart upload $error") *> ZIO.fail(error),
+        response => log.info(s"Successfully completed upload ${completeRequest.getUploadId} ") *> ZIO.succeed(response)
+      )
 
-  def uploadPart(uploadRequest: UploadPartRequest): Task[UploadPartResult] =
-    ZIO.effect(s3.uploadPart(uploadRequest))
+  def uploadPart(
+    uploadPart: UploadPart
+  ): ZIO[LogZIO with Clock, Throwable, UploadPartResult] =
+    (for {
+      _      <- log.info(s"Uploading ${uploadPart.part} for a ${uploadPart.filename}")
+      result <- ZIO.effect(s3.uploadPart(uploadPart.uploadRequest))
+    } yield result)
+      .retry(Schedule.exponential(25.millis) && Schedule.recurs(10))
+      .foldM(
+        error => log.error(s"Failed to upload ${uploadPart.part} for a ${uploadPart.filename}") *> ZIO.fail(error),
+        result => log.info(s"Uploaded ${uploadPart.part} for a ${uploadPart.filename}") *> ZIO.succeed(result)
+      )
 }
 
 object S3Client {

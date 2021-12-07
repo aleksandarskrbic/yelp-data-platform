@@ -3,9 +3,9 @@ package s3.loader
 import zio._
 import zio.magic._
 import logstage.LogZIO.log
-import s3.loader.service.{LoaderService, UploadService}
 import s3.loader.common.{AppConfig, Logging}
 import s3.loader.storage.{S3Client, S3ClientWrapper}
+import s3.loader.service.{LoaderService, UploadService}
 
 object S3LoaderApp extends zio.App {
   override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =

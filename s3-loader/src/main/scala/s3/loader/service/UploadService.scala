@@ -2,14 +2,13 @@ package s3.loader.service
 
 import zio._
 import zio.clock._
-
+import zio.stream._
 import java.io.File
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
 import s3.loader.storage.S3Client
-import s3.loader.model.UploadMetadata
 import com.amazonaws.services.s3.model._
-
+import s3.loader.model.{UploadMetadata, UploadPart}
 import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
@@ -17,17 +16,19 @@ import scala.collection.mutable.ListBuffer
 final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) {
   def upload(file: File) =
     for {
+      _              <- log.info(s"Starting upload for a ${file.getName}")
       started        <- currentTime(TimeUnit.MILLISECONDS)
       metadata       <- ZIO.succeed(createUploadMetadata(file))
       initResponse   <- s3Client.initMultipartUpload(metadata)
       requests       <- ZIO.succeed(createRequests(file, initResponse.getUploadId, metadata))
-      responses      <- ZIO.foreachParN(64)(requests)(s3Client.uploadPart)
+      _              <- log.info(s"${file.getName} have ${requests.size} parts")
+      responses      <- ZStream.fromChunk(requests).mapMParUnordered(50)(s3Client.uploadPart).runCollect
       completeRequest = createCompleteRequest(metadata, initResponse.getUploadId, responses)
-      completed      <- s3Client.completeMultipartUpload(completeRequest)
+      _              <- s3Client.completeMultipartUpload(completeRequest)
       finished       <- currentTime(TimeUnit.MILLISECONDS)
       total           = (finished - started) / 1000
-      _              <- log.info(s"Upload time for file=${file.getName} is ${total}s")
-    } yield completed
+      _              <- log.info(s"Upload time for ${file.getName} is ${total}s")
+    } yield ()
 
   private def createUploadMetadata(file: File): UploadMetadata = {
     val filename    = file.getName
@@ -39,7 +40,7 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
   private def createCompleteRequest(
     metadata: UploadMetadata,
     uploadId: String,
-    responses: List[UploadPartResult]
+    responses: Chunk[UploadPartResult]
   ): CompleteMultipartUploadRequest =
     new CompleteMultipartUploadRequest(
       metadata.bucketName,
@@ -52,14 +53,14 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
     file: File,
     uploadId: String,
     uploadMetadata: UploadMetadata
-  ): List[UploadPartRequest] = {
+  ): Chunk[UploadPart] = {
     var part = 1
     var pos  = 0L
 
     val contentLength  = file.length
     var partSize: Long = 5 * 1024 * 1024
 
-    val requests = new ListBuffer[UploadPartRequest]()
+    val requests = new ListBuffer[UploadPart]()
 
     while (pos < contentLength) {
       partSize = Math.min(partSize, contentLength - pos)
@@ -73,13 +74,13 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
         .withFile(file)
         .withPartSize(partSize)
 
+      requests.append(UploadPart(uploadRequest))
+
       part += 1
       pos += partSize
-
-      requests.append(uploadRequest)
     }
 
-    requests.toList
+    Chunk.fromIterable(requests)
   }
 }
 

@@ -1,6 +1,7 @@
 package s3.loader.service
 
 import zio._
+import zio.stream._
 import java.io.File
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
@@ -9,11 +10,12 @@ final class LoaderService(appConfig: AppConfig, uploadService: UploadService) {
   def start =
     for {
       rootDirectory <- ZIO.effect(createRootDirectory)
-      filesToUpload <- ZIO
-                         .effect(Chunk.fromArray(rootDirectory.listFiles()))
-                         .onError(e => log.error(s"Unable to list files in directory. $e").as(Chunk.empty[File]))
-      result <- ZIO.foreachParN(filesToUpload.size)(filesToUpload)(uploadService.upload)
-    } yield result
+      filesToUpload <-
+        ZIO
+          .effect(Chunk.fromArray(rootDirectory.listFiles()))
+          .onError(error => log.error(s"Unable to list files in directory. $error") *> ZIO.succeed(Chunk.empty[File]))
+      _ <- ZStream.fromChunk(filesToUpload).mapMParUnordered(filesToUpload.size)(uploadService.upload).runDrain
+    } yield ()
 
   private def createRootDirectory: File = new File(appConfig.upload.directory)
 }
