@@ -11,14 +11,27 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 final class SparkWrapper(sparkSession: SparkSession) {
+  def withSession(fn: SparkSession => ZIO[Any, Throwable, Unit]): ZIO[Any, Throwable, Unit] =
+    fn(sparkSession)
+
+  def suspend[A](fn: => A): ZIO[Any, Throwable, A] =
+    ZIO.effectSuspend {
+      ZIO.effect(fn)
+    }
+
   def readJson(path: S3Path): ZIO[LogZIO with Clock, Throwable, DataFrame] =
     ZIO
-      .effect(sparkSession.read.format("json").load(path.value))
+      .effect(sparkSession.read.format("json").load(path.value).cache())
       .retry(Schedule.exponential(100.millis) && Schedule.recurs(10))
       .foldM(
         error => log.error(s"Unable to load ${path}") *> ZIO.fail(error),
         dataframe => ZIO.succeed(dataframe)
       )
+
+  private[adapter] def close: UIO[Unit] =
+    ZIO.effectSuspendTotal {
+      ZIO.effectTotal(sparkSession.close())
+    }
 }
 
 object SparkWrapper {
@@ -35,5 +48,5 @@ object SparkWrapper {
                   .set("spark.hadoop.fs.s3a.path.style.access", "true")
                   .set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
     sparkSession <- ZIO.effect(SparkSession.builder.config(sparkConf).getOrCreate())
-  } yield new SparkWrapper(sparkSession)).toLayer
+  } yield new SparkWrapper(sparkSession)).toManaged(_.close).toLayer
 }
