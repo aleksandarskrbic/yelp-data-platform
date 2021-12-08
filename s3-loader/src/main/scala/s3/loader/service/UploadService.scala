@@ -3,38 +3,54 @@ package s3.loader.service
 import zio._
 import zio.clock._
 import zio.stream._
+
 import java.io.File
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
 import s3.loader.storage.S3Client
 import com.amazonaws.services.s3.model._
-import s3.loader.model.{UploadMetadata, UploadPart}
+import s3.loader.model.{FileSize, FileWrapper, PartDetails, UploadMetadata, UploadPart}
+
 import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
-import scala.collection.mutable.ListBuffer
 
 final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) {
-  def upload(file: File) =
+  def upload(fileWrapper: FileWrapper) =
     for {
-      _              <- log.info(s"Starting upload for a ${file.getName}")
-      started        <- currentTime(TimeUnit.MILLISECONDS)
-      metadata       <- ZIO.succeed(createUploadMetadata(file))
-      initResponse   <- s3Client.initMultipartUpload(metadata)
-      requests       <- ZIO.succeed(createRequests(file, initResponse.getUploadId, metadata))
-      _              <- log.info(s"${file.getName} have ${requests.size} parts")
-      responses      <- ZStream.fromChunk(requests).mapMParUnordered(50)(s3Client.uploadPart).runCollect
+      _            <- log.info(s"Starting upload for a ${fileWrapper.name}")
+      started      <- currentTime(TimeUnit.MILLISECONDS)
+      metadata     <- ZIO.succeed(createUploadMetadata(fileWrapper.file))
+      initResponse <- s3Client.initMultipartUpload(metadata)
+      uploadId      = initResponse.getUploadId
+      partDetails  <- ZIO.effect(PartDetails.fromFile(fileWrapper.file))
+      parallelism   = getParallelism(fileWrapper.size)
+      _            <- log.info(s"Parallelism for ${fileWrapper.name} is $parallelism")
+      responses <- ZStream
+                     .fromChunk(partDetails.value)
+                     .map { case (part, size, offset) =>
+                       new UploadPartRequest()
+                         .withBucketName(metadata.bucket)
+                         .withKey(metadata.filename)
+                         .withUploadId(uploadId)
+                         .withPartNumber(part.value.toInt)
+                         .withFileOffset(offset.value)
+                         .withFile(fileWrapper.file)
+                         .withPartSize(size.value)
+                     }
+                     .mapMParUnordered(parallelism)(request => s3Client.uploadPart(UploadPart(request)))
+                     .runCollect
       completeRequest = createCompleteRequest(metadata, initResponse.getUploadId, responses)
       _              <- s3Client.completeMultipartUpload(completeRequest)
       finished       <- currentTime(TimeUnit.MILLISECONDS)
       total           = (finished - started) / 1000
-      _              <- log.info(s"Upload time for ${file.getName} is ${total}s")
+      _              <- log.info(s"Upload time for ${fileWrapper.name} is ${total}s")
     } yield ()
 
   private def createUploadMetadata(file: File): UploadMetadata = {
     val filename    = file.getName
     val bucket      = storageConfig.bucket
     val initRequest = new InitiateMultipartUploadRequest(bucket, filename)
-    UploadMetadata(file.getName, storageConfig.bucket, initRequest)
+    UploadMetadata(file.getName, bucket, initRequest)
   }
 
   private def createCompleteRequest(
@@ -43,45 +59,18 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
     responses: Chunk[UploadPartResult]
   ): CompleteMultipartUploadRequest =
     new CompleteMultipartUploadRequest(
-      metadata.bucketName,
+      metadata.bucket,
       metadata.filename,
       uploadId,
       responses.map(_.getPartETag).asJava
     )
 
-  private def createRequests(
-    file: File,
-    uploadId: String,
-    uploadMetadata: UploadMetadata
-  ): Chunk[UploadPart] = {
-    var part = 1
-    var pos  = 0L
-
-    val contentLength  = file.length
-    var partSize: Long = 5 * 1024 * 1024
-
-    val requests = new ListBuffer[UploadPart]()
-
-    while (pos < contentLength) {
-      partSize = Math.min(partSize, contentLength - pos)
-
-      val uploadRequest = new UploadPartRequest()
-        .withBucketName(uploadMetadata.bucketName)
-        .withKey(uploadMetadata.filename)
-        .withUploadId(uploadId)
-        .withPartNumber(part)
-        .withFileOffset(pos)
-        .withFile(file)
-        .withPartSize(partSize)
-
-      requests.append(UploadPart(uploadRequest))
-
-      part += 1
-      pos += partSize
+  private def getParallelism(fileSize: FileSize): Int =
+    fileSize match {
+      case FileSize.BigFile    => 64
+      case FileSize.MediumFile => 32
+      case FileSize.SmallFile  => 16
     }
-
-    Chunk.fromIterable(requests)
-  }
 }
 
 object UploadService {
