@@ -8,7 +8,7 @@ import zio.config.magnolia.DeriveConfigDescriptor
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 
-final case class AppConfig(storage: AppConfig.Storage, source: AppConfig.Sources)
+final case class AppConfig(storage: AppConfig.Storage, source: AppConfig.Source)
 
 object AppConfig {
   private val descriptor = DeriveConfigDescriptor.descriptor[AppConfig]
@@ -30,7 +30,7 @@ object AppConfig {
   }
 
   final case class S3Path(value: String) extends AnyVal
-  final case class Sources(users: S3Path, reviews: S3Path, checkins: S3Path, businesses: S3Path)
+  final case class Source(users: S3Path, reviews: S3Path, checkins: S3Path, businesses: S3Path)
 
   lazy val live = (for {
     rawConfig    <- ZIO.effect(ConfigFactory.load().getConfig("spark-jobs"))

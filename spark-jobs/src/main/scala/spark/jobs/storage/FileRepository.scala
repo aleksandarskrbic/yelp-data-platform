@@ -2,6 +2,8 @@ package spark.jobs.storage
 
 import zio._
 import com.amazonaws.services.s3.AmazonS3
+import spark.jobs.adapter.S3ClientWrapper
+
 import collection.JavaConverters._
 
 final class FileRepository(s3: AmazonS3) {

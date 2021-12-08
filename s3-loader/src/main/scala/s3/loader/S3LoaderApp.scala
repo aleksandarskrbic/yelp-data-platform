@@ -8,7 +8,7 @@ import s3.loader.storage.{S3Client, S3ClientWrapper}
 import s3.loader.service.{LoaderService, UploadService}
 
 object S3LoaderApp extends zio.App {
-  override def run(args: List[String]): URIO[zio.ZEnv, ExitCode] =
+  override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     (for {
       _             <- log.info("Starting s3-loader")
       loaderService <- ZIO.service[LoaderService]

@@ -28,6 +28,7 @@ final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) 
       responses <- ZStream
                      .fromChunk(partDetails.value)
                      .map { case (part, size, offset) =>
+                       //add MD5 hash
                        new UploadPartRequest()
                          .withBucketName(metadata.bucket)
                          .withKey(metadata.filename)
