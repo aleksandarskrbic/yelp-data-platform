@@ -2,7 +2,7 @@ package spark.jobs
 
 import spark.jobs.adapter.{S3ClientWrapper, SparkWrapper}
 import spark.jobs.common.{AppConfig, Logging}
-import spark.jobs.processor.BusinessProcessor
+import spark.jobs.processor.JobsManager
 import spark.jobs.service.DataLoader
 import spark.jobs.storage.FileRepository
 import zio._
@@ -11,7 +11,7 @@ import zio.magic._
 object Main extends App {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     (for {
-      processor <- ZIO.service[BusinessProcessor]
+      processor <- ZIO.service[JobsManager]
       _         <- processor.start
     } yield ())
       .inject(
@@ -20,7 +20,7 @@ object Main extends App {
         S3ClientWrapper.live,
         FileRepository.live,
         SparkWrapper.live,
-        BusinessProcessor.live,
+        JobsManager.live,
         DataLoader.live,
         ZEnv.live
       )

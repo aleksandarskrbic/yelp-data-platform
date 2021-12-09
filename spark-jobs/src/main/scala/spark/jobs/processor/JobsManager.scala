@@ -1,6 +1,7 @@
 package spark.jobs.processor
 
 import logstage.LogZIO
+import org.apache.spark.ml.feature.StopWordsRemover
 import org.apache.spark.sql
 import org.apache.spark.sql.Row
 import spark.jobs.service.DataLoader
@@ -11,7 +12,7 @@ import spark.jobs.model.BusinessCheckin
 import zio.clock.Clock
 import zio.stream.ZStream
 
-final class BusinessProcessor(sparkWrapper: SparkWrapper, dataLoader: DataLoader) {
+final class JobsManager(sparkWrapper: SparkWrapper, dataLoader: DataLoader) {
   def start =
     for {
       businessesDFFiber <- dataLoader.businesses.fork
@@ -97,11 +98,45 @@ final class BusinessProcessor(sparkWrapper: SparkWrapper, dataLoader: DataLoader
              }
            }
     } yield ()
+
+  private def wordCounts(reviewDF: sql.DataFrame, topReviews: Boolean) {
+    val stops = StopWordsRemover.loadDefaultStopWords("english")
+
+    val filterExp = if (topReviews) "stars > 3" else "stars <= 3"
+    val path      = if (topReviews) "data/topReviews" else "data/worstReviews"
+
+    for {
+      rdd <- sparkWrapper.suspend {
+               reviewDF
+                 .select("text", "stars")
+                 .filter(filterExp)
+                 .rdd
+                 .map(row => row(0).asInstanceOf[String].replaceAll("\\W+", " ").toLowerCase())
+                 .flatMap(_.split(" "))
+                 .filter(!stops.contains(_))
+                 .map((_, 1))
+                 .reduceByKey(_ + _)
+                 .sortBy(_._2, ascending = false)
+                 .take(100)
+             }
+      _ <- sparkWrapper.withSession { sparkSession =>
+             sparkWrapper.suspend {
+               sparkSession
+                 .createDataFrame(rdd)
+                 .toDF("word", "count")
+                 .coalesce(1)
+                 .write
+                 .option("header", "true")
+                 .csv(path)
+             }
+           }
+    } yield ()
+  }
 }
 
-object BusinessProcessor {
+object JobsManager {
   lazy val live = (for {
     sparkWrapper <- ZIO.service[SparkWrapper]
     dataLoader   <- ZIO.service[DataLoader]
-  } yield new BusinessProcessor(sparkWrapper, dataLoader)).toLayer
+  } yield new JobsManager(sparkWrapper, dataLoader)).toLayer
 }

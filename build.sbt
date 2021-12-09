@@ -24,6 +24,7 @@ lazy val `spark-jobs` = (project in file("spark-jobs"))
       "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
       "org.apache.spark"     %% "spark-core"               % SparkVersion,
       "org.apache.spark"     %% "spark-sql"                % SparkVersion,
+      "org.apache.spark"     %% "spark-mllib"              % SparkVersion,
       "org.apache.hadoop"     % "hadoop-common"            % HadoopVersion,
       "org.apache.hadoop"     % "hadoop-aws"               % HadoopVersion,
       "org.apache.hadoop"     % "hadoop-client"            % HadoopVersion
