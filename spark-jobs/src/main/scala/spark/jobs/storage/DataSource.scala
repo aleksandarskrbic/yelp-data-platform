@@ -1,23 +1,22 @@
-package spark.jobs.service
+package spark.jobs.storage
 
+import logstage.LogZIO
+import org.apache.spark.sql.DataFrame
+import spark.jobs.adapter.SparkWrapper
+import spark.jobs.common.AppConfig
 import zio._
 import zio.clock.Clock
-import logstage.LogZIO
-import spark.jobs.common.AppConfig
-import spark.jobs.adapter.SparkWrapper
-import org.apache.spark.sql.DataFrame
 
-final class DataLoader(sparkWrapper: SparkWrapper, source: AppConfig.Source) {
+final class DataSource(sparkWrapper: SparkWrapper, source: AppConfig.Source) {
   def users: ZIO[LogZIO with Clock, Throwable, DataFrame]      = sparkWrapper.readJson(source.users)
   def reviews: ZIO[LogZIO with Clock, Throwable, DataFrame]    = sparkWrapper.readJson(source.reviews)
   def checkins: ZIO[LogZIO with Clock, Throwable, DataFrame]   = sparkWrapper.readJson(source.checkins)
   def businesses: ZIO[LogZIO with Clock, Throwable, DataFrame] = sparkWrapper.readJson(source.businesses)
 }
 
-object DataLoader {
+object DataSource {
   lazy val live = (for {
-    sparkWrapper <- ZIO.service[SparkWrapper]
     appConfig    <- ZIO.service[AppConfig]
-    source        = appConfig.source
-  } yield new DataLoader(sparkWrapper, source)).toLayer
+    sparkWrapper <- ZIO.service[SparkWrapper]
+  } yield new DataSource(sparkWrapper, appConfig.source)).toLayer
 }

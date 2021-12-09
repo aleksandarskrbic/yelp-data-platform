@@ -23,7 +23,6 @@ final class S3ClientWrapper(storageConfig: AppConfig.Storage) {
 
 object S3ClientWrapper {
   lazy val live = (for {
-    appConfig    <- ZIO.service[AppConfig]
-    storageConfig = appConfig.storage
-  } yield new S3ClientWrapper(storageConfig)).toLayer
+    appConfig <- ZIO.service[AppConfig]
+  } yield new S3ClientWrapper(appConfig.storage)).toLayer
 }

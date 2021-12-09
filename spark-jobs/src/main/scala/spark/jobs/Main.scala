@@ -3,8 +3,7 @@ package spark.jobs
 import spark.jobs.adapter.{S3ClientWrapper, SparkWrapper}
 import spark.jobs.common.{AppConfig, Logging}
 import spark.jobs.processor.JobsManager
-import spark.jobs.service.DataLoader
-import spark.jobs.storage.FileRepository
+import spark.jobs.storage.{DataSource, FileRepository}
 import zio._
 import zio.magic._
 
@@ -21,7 +20,7 @@ object Main extends App {
         FileRepository.live,
         SparkWrapper.live,
         JobsManager.live,
-        DataLoader.live,
+        DataSource.live,
         ZEnv.live
       )
       .exitCode

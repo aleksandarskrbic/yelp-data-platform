@@ -1,16 +1,16 @@
 package spark.jobs.adapter
 
-import logstage.LogZIO.log
-import logstage.LogZIO
 import zio._
 import zio.duration._
 import zio.clock.Clock
+import logstage.LogZIO
+import logstage.LogZIO.log
+import org.apache.spark.SparkConf
 import spark.jobs.common.AppConfig
 import spark.jobs.common.AppConfig.S3Path
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-final class SparkWrapper(sparkSession: SparkSession) {
+final class SparkWrapper(sparkSession: SparkSession, sink: AppConfig.Sink) {
   def withSession(fn: SparkSession => ZIO[Any, Throwable, Unit]): ZIO[Any, Throwable, Unit] =
     fn(sparkSession)
 
@@ -28,6 +28,9 @@ final class SparkWrapper(sparkSession: SparkSession) {
         dataframe => ZIO.succeed(dataframe)
       )
 
+  def destination(value: String): String =
+    s"${sink.bucket}$value"
+
   private[adapter] def close: UIO[Unit] =
     ZIO.effectSuspendTotal {
       ZIO.effectTotal(sparkSession.close())
@@ -36,17 +39,18 @@ final class SparkWrapper(sparkSession: SparkSession) {
 
 object SparkWrapper {
   lazy val live = (for {
-    appConfig <- ZIO.service[AppConfig]
-    storage    = appConfig.storage
-    sparkConf = new SparkConf()
-                  .setAppName("MinIO example")
-                  .setMaster("local")
-                  .set("spark.hadoop.fs.s3a.endpoint", storage.serviceEndpoint)
-                  .set("spark.hadoop.fs.s3a.access.key", storage.credentials.accessKey)
-                  .set("spark.hadoop.fs.s3a.secret.key", storage.credentials.accessKey)
-                  .set("spark.hadoop.fs.s3a.fast.upload", "true")
-                  .set("spark.hadoop.fs.s3a.path.style.access", "true")
-                  .set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-    sparkSession <- ZIO.effect(SparkSession.builder.config(sparkConf).getOrCreate())
-  } yield new SparkWrapper(sparkSession)).toManaged(_.close).toLayer
+    appConfig    <- ZIO.service[AppConfig]
+    sparkSession <- ZIO.effect(SparkSession.builder.config(createSparkConf(appConfig.storage)).getOrCreate())
+  } yield new SparkWrapper(sparkSession, appConfig.sink)).toManaged(_.close).toLayer
+
+  private def createSparkConf(storage: AppConfig.Storage): SparkConf =
+    new SparkConf()
+      .setAppName("MinIO example")
+      .setMaster("local")
+      .set("spark.hadoop.fs.s3a.endpoint", storage.serviceEndpoint)
+      .set("spark.hadoop.fs.s3a.access.key", storage.credentials.accessKey)
+      .set("spark.hadoop.fs.s3a.secret.key", storage.credentials.accessKey)
+      .set("spark.hadoop.fs.s3a.fast.upload", "true")
+      .set("spark.hadoop.fs.s3a.path.style.access", "true")
+      .set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
 }
