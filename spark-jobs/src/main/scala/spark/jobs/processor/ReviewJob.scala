@@ -12,7 +12,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature.StopWordsRemover
 import java.util.concurrent.TimeUnit
 
-final class ReviewJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
+final class ReviewJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
@@ -68,9 +68,9 @@ final class ReviewJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   }
 }
 
-object ReviewJobs {
+object ReviewJob {
   lazy val live = (for {
     sparkWrapper <- ZIO.service[SparkWrapper]
     dataSource   <- ZIO.service[DataSource]
-  } yield new ReviewJobs(sparkWrapper, dataSource)).toLayer
+  } yield new ReviewJob(sparkWrapper, dataSource)).toLayer
 }

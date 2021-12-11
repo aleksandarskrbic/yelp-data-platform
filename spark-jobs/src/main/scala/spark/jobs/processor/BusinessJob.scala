@@ -10,7 +10,7 @@ import org.apache.spark.sql
 import org.apache.spark.sql.functions.desc
 import java.util.concurrent.TimeUnit
 
-final class BusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
+final class BusinessJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started    <- currentTime(TimeUnit.MILLISECONDS)
@@ -63,9 +63,9 @@ final class BusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
     }
 }
 
-object BusinessJobs {
+object BusinessJob {
   lazy val live = (for {
     sparkWrapper <- ZIO.service[SparkWrapper]
     dataSource   <- ZIO.service[DataSource]
-  } yield new BusinessJobs(sparkWrapper, dataSource)).toLayer
+  } yield new BusinessJob(sparkWrapper, dataSource)).toLayer
 }

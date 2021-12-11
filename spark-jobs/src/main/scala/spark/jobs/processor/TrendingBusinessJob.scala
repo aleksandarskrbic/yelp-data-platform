@@ -1,19 +1,21 @@
 package spark.jobs.processor
 
+import zio._
+import zio.clock._
+import logstage.LogZIO
 import logstage.LogZIO.log
 import org.apache.spark.sql
-import org.apache.spark.sql.functions.desc
+import org.apache.spark.sql.functions._
 import spark.jobs.adapter.SparkWrapper
-import spark.jobs.model.{Checkin, Review}
 import spark.jobs.storage.DataSource
-import zio.ZIO
-import zio.clock.currentTime
-
+import spark.jobs.model.{Checkin, Review}
 import java.util.concurrent.TimeUnit
 
-final class TrendingBusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
-  def start =
+final class TrendingBusinessJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
+  def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
+      started <- currentTime(TimeUnit.MILLISECONDS)
+
       reviewsDFFiber    <- dataSource.reviews.fork
       checkinsDFFiber   <- dataSource.checkins.fork
       businessesDFFiber <- dataSource.businesses.fork
@@ -22,16 +24,18 @@ final class TrendingBusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSou
       checkinsDF   <- checkinsDFFiber.join
       businessesDF <- businessesDFFiber.join
 
-      result <- trendingBusiness(reviewsDF, businessesDF, checkinsDF)
-    } yield result
+      _        <- trendingBusiness(reviewsDF, businessesDF, checkinsDF)
+      finished <- currentTime(TimeUnit.MILLISECONDS)
+      total     = (finished - started) / 1000
+      _        <- log.info(s"$getClass finished in ${total}s")
+    } yield ()
 
   private def trendingBusiness(
     reviewDF: sql.DataFrame,
     businessDF: sql.DataFrame,
     checkinsDF: sql.DataFrame
-  ) =
+  ): Task[Unit] =
     for {
-      started <- currentTime(TimeUnit.MILLISECONDS)
       reviewFilteredDFFiber <- sparkWrapper.withSession { sparkSession =>
                                  sparkWrapper.suspend {
                                    import sparkSession.implicits._
@@ -50,7 +54,6 @@ final class TrendingBusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSou
                                      .withColumnRenamed("business_id", "business_id_r")
                                  }
                                }.fork
-
       checkinsFilteredDFFiber <- sparkWrapper.withSession { sparkSession =>
                                    sparkWrapper.suspend {
                                      import sparkSession.implicits._
@@ -79,21 +82,18 @@ final class TrendingBusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSou
                  "left_outer"
                )
                .select("name", "city", "positive_reviews", "checkins")
-               //.sort(desc("checkins"), desc("positive_reviews"))
+               .sort(desc("checkins"), desc("positive_reviews"))
                .coalesce(1)
                .write
                .option("header", "true")
                .csv(sparkWrapper.destination("trending_business"))
            }
-      finished <- currentTime(TimeUnit.MILLISECONDS)
-      total     = (finished - started) / 1000
-      _        <- log.info(s"$getClass finished in ${total}s")
     } yield ()
 }
 
-object TrendingBusinessJobs {
+object TrendingBusinessJob {
   lazy val live = (for {
     sparkWrapper <- ZIO.service[SparkWrapper]
     dataSource   <- ZIO.service[DataSource]
-  } yield new TrendingBusinessJobs(sparkWrapper, dataSource)).toLayer
+  } yield new TrendingBusinessJob(sparkWrapper, dataSource)).toLayer
 }

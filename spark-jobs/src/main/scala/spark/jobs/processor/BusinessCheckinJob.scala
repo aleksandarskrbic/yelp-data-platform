@@ -11,7 +11,7 @@ import spark.jobs.model.{BusinessCheckin, CheckinStats}
 import spark.jobs.storage.DataSource
 import java.util.concurrent.TimeUnit
 
-final class BusinessCheckinJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
+final class BusinessCheckinJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started           <- currentTime(TimeUnit.MILLISECONDS)
@@ -71,9 +71,9 @@ final class BusinessCheckinJobs(sparkWrapper: SparkWrapper, dataSource: DataSour
     }
 }
 
-object BusinessCheckinJobs {
+object BusinessCheckinJob {
   lazy val live = (for {
     sparkWrapper <- ZIO.service[SparkWrapper]
     dataSource   <- ZIO.service[DataSource]
-  } yield new BusinessCheckinJobs(sparkWrapper, dataSource)).toLayer
+  } yield new BusinessCheckinJob(sparkWrapper, dataSource)).toLayer
 }
