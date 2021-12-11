@@ -3,7 +3,9 @@ package spark.jobs.processor
 import logstage.LogZIO.log
 import org.apache.spark.ml.feature.StopWordsRemover
 import org.apache.spark.sql
+import org.apache.spark.sql.functions._
 import spark.jobs.adapter.SparkWrapper
+import spark.jobs.model.WordCount
 import spark.jobs.storage.DataSource
 import zio.clock.currentTime
 import zio.{Task, ZIO}
@@ -45,34 +47,17 @@ final class ReviewJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
       _ <- sparkWrapper.withSession { sparkSession =>
              sparkWrapper.suspend {
                import sparkSession.implicits._
-               reviewDF
-                 .select("text", "stars")
-                 .filter(filterExp)
-                 .map(row => row(0).asInstanceOf[String].replaceAll("\\W+", " ").toLowerCase)
-                 .flatMap(_.split(" "))
-                 .filter(!stops.contains(_))
-                 .map((_, 1))
-             }
-           }
-      rdd <- sparkWrapper.suspend {
-               reviewDF
-                 .select("text", "stars")
-                 .filter(filterExp)
-                 .rdd
-                 .map(row => row(0).asInstanceOf[String].replaceAll("\\W+", " ").toLowerCase)
-                 .flatMap(_.split(" "))
-                 .filter(!stops.contains(_))
-                 .map((_, 1))
-                 .reduceByKey(_ + _)
-                 .sortBy(_._2, ascending = false)
-                 .take(100)
-             }
 
-      _ <- sparkWrapper.withSession { sparkSession =>
-             sparkWrapper.suspend {
-               sparkSession
-                 .createDataFrame(rdd)
-                 .toDF("word", "count")
+               reviewDF
+                 .select("text", "stars")
+                 .filter(filterExp)
+                 .map(row => row(0).asInstanceOf[String].replaceAll("\\W+", " ").toLowerCase)
+                 .flatMap(_.split(" "))
+                 .filter(!stops.contains(_))
+                 .map(word => WordCount(word))
+                 .groupBy("word")
+                 .agg(sum($"count"))
+                 .sort(col("sum(count)").desc)
                  .coalesce(1)
                  .write
                  .option("header", "true")

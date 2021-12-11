@@ -2,9 +2,9 @@ package spark.jobs
 
 import spark.jobs.adapter.SparkWrapper
 import spark.jobs.common.{AppConfig, Logging}
-import spark.jobs.processor.{BusinessJobs, ReviewJobs}
+import spark.jobs.processor.ReviewJobs
 import spark.jobs.storage.DataSource
-import zio.{ExitCode, URIO, ZEnv, ZIO}
+import zio._
 import zio.magic._
 
 object ReviewJobsRunner extends zio.App {
