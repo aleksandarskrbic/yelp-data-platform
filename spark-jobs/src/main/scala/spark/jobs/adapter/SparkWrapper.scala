@@ -11,10 +11,10 @@ import spark.jobs.common.AppConfig.S3Path
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
 final class SparkWrapper(sparkSession: SparkSession, sink: AppConfig.Sink) {
-  def withSession[A](fn: SparkSession => ZIO[Any, Throwable, A]): ZIO[Any, Throwable, A] =
+  def withSession[A](fn: SparkSession => Task[A]): Task[A] =
     fn(sparkSession)
 
-  def suspend[A](fn: => A): ZIO[Any, Throwable, A] =
+  def suspend[A](fn: => A): Task[A] =
     ZIO.effectSuspend {
       ZIO.effect(fn)
     }

@@ -1,8 +1,7 @@
 package spark.jobs.model
 
-import org.apache.spark.sql.Row
-
 import java.time.Year
+import org.apache.spark.sql.Row
 
 final case class UserDetails(userId: String, reviewCount: Long, averageStars: Double, yelpingFor: Int, friends: Int)
 

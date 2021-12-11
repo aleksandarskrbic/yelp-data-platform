@@ -1,15 +1,14 @@
 package spark.jobs.processor
 
 import zio._
-import logstage.{LogIO, LogZIO}
+import zio.clock._
+import logstage.LogZIO
 import logstage.LogZIO.log
 import org.apache.spark.sql
 import org.apache.spark.sql.functions.desc
 import spark.jobs.adapter.SparkWrapper
 import spark.jobs.model.{BusinessCheckin, CheckinStats}
 import spark.jobs.storage.DataSource
-import zio.clock.{Clock, currentTime}
-
 import java.util.concurrent.TimeUnit
 
 final class BusinessCheckinJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
@@ -51,7 +50,7 @@ final class BusinessCheckinJobs(sparkWrapper: SparkWrapper, dataSource: DataSour
       }
     }
 
-  private def checkinStats(businessDF: sql.DataFrame, checkinsDF: sql.DataFrame): ZIO[Any, Throwable, Unit] =
+  private def checkinStats(businessDF: sql.DataFrame, checkinsDF: sql.DataFrame): Task[Unit] =
     sparkWrapper.withSession { sparkSession =>
       sparkWrapper.suspend {
         import sparkSession.implicits._
