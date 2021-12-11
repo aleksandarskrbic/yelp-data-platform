@@ -1,19 +1,17 @@
 package spark.jobs.processor
 
+import zio._
+import logstage.LogZIO
 import logstage.LogZIO.log
+import zio.clock.{Clock, currentTime}
+import spark.jobs.storage.DataSource
+import spark.jobs.adapter.SparkWrapper
 import org.apache.spark.sql
 import org.apache.spark.sql.functions.desc
-import spark.jobs.adapter.SparkWrapper
-import spark.jobs.common.{AppConfig, Logging}
-import spark.jobs.storage.DataSource
-import zio._
-import zio.clock.currentTime
-import zio.magic._
-
 import java.util.concurrent.TimeUnit
 
 final class BusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
-  def start =
+  def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started    <- currentTime(TimeUnit.MILLISECONDS)
       businessDF <- dataSource.businesses
@@ -28,7 +26,7 @@ final class BusinessJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
 
       finished <- currentTime(TimeUnit.MILLISECONDS)
       total     = (finished - started) / 1000
-      _        <- log.info(s"$getClass finished in ${total}s")
+      _        <- log.info(s"${getClass.getCanonicalName} finished in ${total}s")
     } yield ()
 
   private def businessByReview(df: sql.DataFrame): Task[Unit] =
