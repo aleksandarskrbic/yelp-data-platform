@@ -1,18 +1,19 @@
 package spark.jobs.processor
 
+import zio._
+import logstage.{LogIO, LogZIO}
 import logstage.LogZIO.log
 import org.apache.spark.sql
 import org.apache.spark.sql.functions.desc
 import spark.jobs.adapter.SparkWrapper
 import spark.jobs.model.{BusinessCheckin, CheckinStats}
 import spark.jobs.storage.DataSource
-import zio.clock.currentTime
-import zio.{Task, ZIO}
+import zio.clock.{Clock, currentTime}
 
 import java.util.concurrent.TimeUnit
 
 final class BusinessCheckinJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
-  def start =
+  def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started           <- currentTime(TimeUnit.MILLISECONDS)
       checkinsDFFiber   <- dataSource.checkins.fork
