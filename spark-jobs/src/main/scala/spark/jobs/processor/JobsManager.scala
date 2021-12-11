@@ -1,6 +1,7 @@
 package spark.jobs.processor
 
 import logstage.LogZIO
+import logstage.LogZIO.log
 import org.apache.spark.ml.feature.StopWordsRemover
 import org.apache.spark.sql
 import org.apache.spark.sql.Row
@@ -12,74 +13,78 @@ import spark.jobs.storage.DataSource
 import zio.clock.Clock
 import zio.stream.ZStream
 
-final class JobsManager(sparkWrapper: SparkWrapper, dataLoader: DataSource) {
+final class JobsManager(
+  businessJobs: BusinessJobs,
+  businessCheckinJobs: BusinessCheckinJobs,
+  reviewJobs: ReviewJobs,
+  userJobs: UserJobs,
+  trendingBusinessJobs: TrendingBusinessJobs
+) {
   def start =
     for {
-      businessesDFFiber <- dataLoader.businesses.fork
-      checkinsDFFiber   <- dataLoader.checkins.fork
-      reviewsDFFiber    <- dataLoader.reviews.fork
+      userJobsFiber         <- userJobs.start.fork
+      businessJobsFiber     <- businessJobs.start.fork
+      reviewJobs            <- reviewJobs.start.fork
+      businessCheckinsFiber <- businessCheckinJobs.start.fork
+      //_ <- trendingBusinessJobs.start
+
+      _ <- userJobsFiber.join
+      _ <- businessJobsFiber.join
+      _ <- reviewJobs.join
+      _ <- businessCheckinsFiber.join
+    } yield ()
+
+  /*  def start1 =
+    for {
+      businessesDFFiber <- dataSource.businesses.fork
+      checkinsDFFiber   <- dataSource.checkins.fork
+      reviewsDFFiber    <- dataSource.reviews.fork
+      userDFFiber       <- dataSource.users.fork
 
       businessesDF <- businessesDFFiber.join
 
-      cityFiber       <- businessByCity(businessesDF).fork
-      reviewsFiber    <- businessByReview(businessesDF).fork
-      businessesFiber <- businessByIsOpen(businessesDF).fork
+      cityFiber       <- businessJobs.businessByCity(businessesDF).fork
+      reviewsFiber    <- businessJobs.businessByReview(businessesDF).fork
+      businessesFiber <- businessJobs.businessByIsOpen(businessesDF).fork
+
+      _ <- ZIO.foreach_(Chunk(cityFiber, reviewsFiber, businessesFiber))(_.join)
+      _ <- log.info("First batch finished")
+
+      usersDF <- userDFFiber.join
+
+      userDetailsFiber <- userJobs.userDetails(usersDF).fork
 
       checkinsDF <- checkinsDFFiber.join
 
-      businessCheckinsFiber <- businessCheckins(businessesDF, checkinsDF).fork
-      _                     <- businessCheckinsFiber.join
+      businessCheckinsFiber <- businessJobs.businessCheckins(businessesDF, checkinsDF).fork
+      checkinStatsFiber     <- businessJobs.checkinStats(businessesDF, checkinsDF).fork
+
+      _ <- ZIO.foreach_(Chunk(userDetailsFiber, businessCheckinsFiber, checkinStatsFiber))(_.join)
+      _ <- log.info("Second batch finished")
 
       reviewsDF <- reviewsDFFiber.join
 
-      result <- ZIO.raceAll(
-                  reviewsFiber.await,
-                  Chunk(
-                    cityFiber.await,
-                    businessesFiber.await,
-                    businessCheckinsFiber.await
-                  )
-                )
-    } yield ()
+      trendingBusinessesFiber <- businessJobs.trendingBusiness(businessesDF, checkinsDF, reviewsDF).fork
+      topReviewsFiber         <- reviewJobs.topReviews(reviewsDF).fork
+      worstReviewsFiber       <- reviewJobs.worstReviews(reviewsDF).fork
 
-  private def wordCounts(reviewDF: sql.DataFrame, topReviews: Boolean) {
-    val stops = StopWordsRemover.loadDefaultStopWords("english")
-
-    val filterExp = if (topReviews) "stars > 3" else "stars <= 3"
-    val path      = if (topReviews) "data/topReviews" else "data/worstReviews"
-
-    for {
-      rdd <- sparkWrapper.suspend {
-               reviewDF
-                 .select("text", "stars")
-                 .filter(filterExp)
-                 .rdd
-                 .map(row => row(0).asInstanceOf[String].replaceAll("\\W+", " ").toLowerCase())
-                 .flatMap(_.split(" "))
-                 .filter(!stops.contains(_))
-                 .map((_, 1))
-                 .reduceByKey(_ + _)
-                 .sortBy(_._2, ascending = false)
-                 .take(100)
-             }
-      _ <- sparkWrapper.withSession { sparkSession =>
-             sparkWrapper.suspend {
-               sparkSession
-                 .createDataFrame(rdd)
-                 .toDF("word", "count")
-                 .coalesce(1)
-                 .write
-                 .option("header", "true")
-                 .csv(path)
-             }
-           }
-    } yield ()
-  }
+      _ <- ZIO.foreach_(Chunk(trendingBusinessesFiber, topReviewsFiber, worstReviewsFiber))(_.join)
+      _ <- log.info("Third batch finished")
+    } yield ()*/
 }
 
 object JobsManager {
   lazy val live = (for {
-    sparkWrapper <- ZIO.service[SparkWrapper]
-    dataLoader   <- ZIO.service[DataSource]
-  } yield new JobsManager(sparkWrapper, dataLoader)).toLayer
+    businessJobs         <- ZIO.service[BusinessJobs]
+    businessCheckinJobs  <- ZIO.service[BusinessCheckinJobs]
+    reviewJobs           <- ZIO.service[ReviewJobs]
+    userJobs             <- ZIO.service[UserJobs]
+    trendingBusinessJobs <- ZIO.service[TrendingBusinessJobs]
+  } yield new JobsManager(
+    businessJobs,
+    businessCheckinJobs,
+    reviewJobs,
+    userJobs,
+    trendingBusinessJobs
+  )).toLayer
 }

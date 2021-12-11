@@ -1,26 +1,24 @@
 package spark.jobs
 
-import spark.jobs.adapter.{S3ClientWrapper, SparkWrapper}
+import spark.jobs.adapter.SparkWrapper
 import spark.jobs.common.{AppConfig, Logging}
-import spark.jobs.processor.JobsManager
-import spark.jobs.storage.{DataSource, FileRepository}
+import spark.jobs.processor.UserJobs
+import spark.jobs.storage.DataSource
 import zio._
 import zio.magic._
 
-object Main extends App {
+object UsersJobsRunner extends zio.App {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     (for {
-      processor <- ZIO.service[JobsManager]
-      _         <- processor.start
+      userJobs <- ZIO.service[UserJobs]
+      _        <- userJobs.start
     } yield ())
       .inject(
         AppConfig.live,
         Logging.live,
-        S3ClientWrapper.live,
-        FileRepository.live,
         SparkWrapper.live,
-        JobsManager.live,
         DataSource.live,
+        UserJobs.live,
         ZEnv.live
       )
       .exitCode
