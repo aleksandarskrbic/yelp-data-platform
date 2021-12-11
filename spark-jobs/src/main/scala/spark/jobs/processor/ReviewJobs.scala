@@ -1,19 +1,19 @@
 package spark.jobs.processor
 
+import zio._
+import zio.clock._
+import logstage.LogZIO
 import logstage.LogZIO.log
-import org.apache.spark.ml.feature.StopWordsRemover
-import org.apache.spark.sql
-import org.apache.spark.sql.functions._
 import spark.jobs.adapter.SparkWrapper
 import spark.jobs.model.WordCount
 import spark.jobs.storage.DataSource
-import zio.clock.currentTime
-import zio.{Task, ZIO}
-
+import org.apache.spark.sql
+import org.apache.spark.sql.functions._
+import org.apache.spark.ml.feature.StopWordsRemover
 import java.util.concurrent.TimeUnit
 
 final class ReviewJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
-  def start =
+  def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
       reviewsDF <- dataSource.reviews
