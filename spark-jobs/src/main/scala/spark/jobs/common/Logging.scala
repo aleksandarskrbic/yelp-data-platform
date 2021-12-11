@@ -12,6 +12,7 @@ object Logging {
       "jetty."                       -> Log.Level.Error,
       "handler."                     -> Log.Level.Error,
       "org.apache."                  -> Log.Level.Error,
+      "o.a.h.fs.s3a.Invoker"         -> Log.Level.Error,
       "o.a.h.fs.s3a.S3AFileSystem"   -> Log.Level.Error,
       "o.s.jetty.io.ManagedSelector" -> Log.Level.Error
     )

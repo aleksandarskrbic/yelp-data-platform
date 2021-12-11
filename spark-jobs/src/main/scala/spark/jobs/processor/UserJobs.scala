@@ -1,16 +1,16 @@
 package spark.jobs.processor
 
+import zio._
+import zio.clock._
+import logstage.LogZIO
 import logstage.LogZIO.log
-import zio.ZIO
 import spark.jobs.model.UserDetails
-import spark.jobs.adapter.SparkWrapper
 import spark.jobs.storage.DataSource
-import zio.clock.currentTime
-
+import spark.jobs.adapter.SparkWrapper
 import java.util.concurrent.TimeUnit
 
 final class UserJobs(sparkWrapper: SparkWrapper, dataSource: DataSource) {
-  def start =
+  def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started <- currentTime(TimeUnit.MILLISECONDS)
       userDF  <- dataSource.users

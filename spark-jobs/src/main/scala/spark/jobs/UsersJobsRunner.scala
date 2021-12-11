@@ -1,11 +1,11 @@
 package spark.jobs
 
-import spark.jobs.adapter.SparkWrapper
-import spark.jobs.common.{AppConfig, Logging}
-import spark.jobs.processor.UserJobs
-import spark.jobs.storage.DataSource
 import zio._
 import zio.magic._
+import spark.jobs.processor.UserJobs
+import spark.jobs.storage.DataSource
+import spark.jobs.adapter.SparkWrapper
+import spark.jobs.common.{AppConfig, Logging}
 
 object UsersJobsRunner extends zio.App {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
