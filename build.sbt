@@ -47,3 +47,20 @@ lazy val `s3-loader` = (project in file("s3-loader"))
     ),
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   )
+
+lazy val `trending-businesses-aggregator` = (project in file("trending-businesses-aggregator"))
+  .settings(
+    name := "trending-businesses-aggregator",
+    libraryDependencies ++= Seq(
+      "dev.zio"              %% "zio"                      % ZioVersion,
+      "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
+      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
+      "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
+      "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
+      "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
+      "io.7mind.izumi"       %% "logstage-adapter-slf4j"   % LogStageVersion,
+      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
+      "dev.zio"              %% "zio-test"                 % ZioVersion % Test
+    ),
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  )

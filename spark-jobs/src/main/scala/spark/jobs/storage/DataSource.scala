@@ -8,10 +8,10 @@ import zio._
 import zio.clock.Clock
 
 final class DataSource(sparkWrapper: SparkWrapper, source: AppConfig.Source) {
-  def users: ZIO[LogZIO with Clock, Throwable, DataFrame]      = sparkWrapper.readJson(source.users)
-  def reviews: ZIO[LogZIO with Clock, Throwable, DataFrame]    = sparkWrapper.readJson(source.reviews)
-  def checkins: ZIO[LogZIO with Clock, Throwable, DataFrame]   = sparkWrapper.readJson(source.checkins)
-  def businesses: ZIO[LogZIO with Clock, Throwable, DataFrame] = sparkWrapper.readJson(source.businesses)
+  def users: ZIO[LogZIO with Clock, Throwable, DataFrame]      = sparkWrapper.read(source.users)
+  def reviews: ZIO[LogZIO with Clock, Throwable, DataFrame]    = sparkWrapper.read(source.reviews)
+  def checkins: ZIO[LogZIO with Clock, Throwable, DataFrame]   = sparkWrapper.read(source.checkins)
+  def businesses: ZIO[LogZIO with Clock, Throwable, DataFrame] = sparkWrapper.read(source.businesses)
 }
 
 object DataSource {

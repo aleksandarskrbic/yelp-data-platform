@@ -11,7 +11,9 @@ import s3.loader.storage.S3Client
 final class LoaderService(appConfig: AppConfig, s3Client: S3Client, uploadService: UploadService) {
   def start =
     for {
-      _             <- s3Client.createBucketIfNotExists(appConfig.storage.bucket)
+      _ <- s3Client
+             .createBucketIfNotExists(appConfig.storage.bucket)
+             .zipPar(s3Client.createBucketIfNotExists(appConfig.storage.processedBucket))
       rootDirectory <- ZIO.effect(createRootDirectory)
       filesToUpload <-
         ZIO

@@ -1,4 +1,4 @@
-package s3.loader.common
+package trending.businesses.aggregator.common
 
 import zio._
 import zio.config.read
@@ -8,7 +8,7 @@ import zio.config.magnolia.DeriveConfigDescriptor
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 
-final case class AppConfig(storage: AppConfig.Storage, upload: AppConfig.Upload)
+final case class AppConfig(storage: AppConfig.Storage, source: AppConfig.Source, sink: AppConfig.Sink)
 
 object AppConfig {
   private val descriptor = DeriveConfigDescriptor.descriptor[AppConfig]
@@ -19,11 +19,8 @@ object AppConfig {
     )
   }
 
-  final case class Upload(directory: String)
-
   final case class Storage(
     bucket: String,
-    processedBucket: String,
     region: String,
     serviceEndpoint: String,
     credentials: Credentials
@@ -32,8 +29,13 @@ object AppConfig {
       new AwsClientBuilder.EndpointConfiguration(serviceEndpoint, region)
   }
 
+  final case class S3Path(bucket: String, folder: String)
+  final case class Source(trendingReviews: S3Path, trendingCheckins: S3Path)
+
+  final case class Sink(bucket: String) extends AnyVal
+
   lazy val live = (for {
-    rawConfig    <- ZIO.effect(ConfigFactory.load().getConfig("s3-loader"))
+    rawConfig    <- ZIO.effect(ConfigFactory.load().getConfig("trending-businesses-aggregator"))
     configSource <- ZIO.fromEither(TypesafeConfigSource.fromTypesafeConfig(rawConfig))
     config       <- ZIO.fromEither(read(descriptor.from(configSource)))
   } yield config).toLayer.orDie

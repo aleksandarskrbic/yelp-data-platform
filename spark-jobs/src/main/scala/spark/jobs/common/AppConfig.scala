@@ -20,6 +20,7 @@ object AppConfig {
   }
 
   final case class Storage(
+    bucket: String,
     region: String,
     serviceEndpoint: String,
     credentials: Credentials

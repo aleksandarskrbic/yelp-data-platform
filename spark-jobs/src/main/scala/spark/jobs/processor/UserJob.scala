@@ -22,7 +22,6 @@ final class UserJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
                  .select("user_id", "review_count", "average_stars", "yelping_since", "friends")
                  .filter(!_.anyNull)
                  .map(UserDetails.fromRow)
-                 .toDF("user_id", "review_count", "average_stars", "yelping_for", "friends")
                  .coalesce(1)
                  .write
                  .option("header", "true")
@@ -31,7 +30,7 @@ final class UserJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
            }
       finished <- currentTime(TimeUnit.MILLISECONDS)
       total     = (finished - started) / 1000
-      _        <- log.info(s"$getClass finished in ${total}s")
+      _        <- log.info(s"${getClass.getCanonicalName} finished in ${total}s")
     } yield ()
 }
 

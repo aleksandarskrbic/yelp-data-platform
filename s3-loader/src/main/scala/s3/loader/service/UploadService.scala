@@ -3,8 +3,8 @@ package s3.loader.service
 import zio._
 import zio.clock._
 import zio.stream._
-
 import java.io.File
+import logstage.LogZIO
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
 import s3.loader.storage.S3Client
@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
 
 final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) {
-  def upload(fileWrapper: FileWrapper) =
+  def upload(fileWrapper: FileWrapper): ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       _            <- log.info(s"Starting upload for a ${fileWrapper.name}")
       started      <- currentTime(TimeUnit.MILLISECONDS)

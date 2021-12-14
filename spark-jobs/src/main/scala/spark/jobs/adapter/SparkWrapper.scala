@@ -19,9 +19,13 @@ final class SparkWrapper(sparkSession: SparkSession, sink: AppConfig.Sink) {
       ZIO.effect(fn)
     }
 
-  def readJson(path: S3Path): ZIO[LogZIO with Clock, Throwable, DataFrame] =
+  def read(
+    path: S3Path,
+    format: String = "json",
+    options: Map[String, String] = Map.empty
+  ): ZIO[LogZIO with Clock, Throwable, DataFrame] =
     ZIO
-      .effect(sparkSession.read.format("json").load(path.value).cache())
+      .effect(sparkSession.read.format(format).options(options).load(path.value).cache())
       .retry(Schedule.exponential(100.millis) && Schedule.recurs(10))
       .foldM(
         error => log.error(s"Unable to load $path") *> ZIO.fail(error),
