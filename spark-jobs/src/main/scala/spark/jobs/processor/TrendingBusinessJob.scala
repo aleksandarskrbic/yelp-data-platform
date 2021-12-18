@@ -6,11 +6,12 @@ import logstage.LogZIO
 import logstage.LogZIO.log
 import org.apache.spark.sql
 import org.apache.spark.sql.functions.desc
-import spark.jobs.adapter.SparkWrapper
+import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.common.AppConfig
 import spark.jobs.common.AppConfig.S3Path
 import spark.jobs.model.{Checkin, Review}
 import spark.jobs.storage.{DataSource, FileRepository}
+
 import java.util.concurrent.TimeUnit
 
 final class TrendingBusinessJob(

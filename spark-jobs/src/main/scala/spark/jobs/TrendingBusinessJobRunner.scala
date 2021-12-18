@@ -2,10 +2,11 @@ package spark.jobs
 
 import zio._
 import zio.magic._
-import spark.jobs.storage.{DataSource, FileRepository}
-import spark.jobs.adapter.{S3ClientWrapper, SparkWrapper}
+import spark.jobs.adapter.s3.S3ClientWrapper
+import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.common.{AppConfig, Logging}
 import spark.jobs.processor.TrendingBusinessJob
+import spark.jobs.storage.{DataSource, FileRepository}
 
 object TrendingBusinessJobRunner extends zio.App {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =

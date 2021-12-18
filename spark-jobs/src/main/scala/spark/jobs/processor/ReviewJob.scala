@@ -4,12 +4,13 @@ import zio._
 import zio.clock._
 import logstage.LogZIO
 import logstage.LogZIO.log
-import spark.jobs.adapter.SparkWrapper
 import spark.jobs.model.WordCount
 import spark.jobs.storage.DataSource
 import org.apache.spark.sql
 import org.apache.spark.sql.functions._
 import org.apache.spark.ml.feature.StopWordsRemover
+import spark.jobs.adapter.spark.SparkWrapper
+
 import java.util.concurrent.TimeUnit
 
 final class ReviewJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {

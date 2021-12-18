@@ -4,7 +4,7 @@ import zio._
 import zio.clock._
 import logstage.LogZIO
 import org.apache.spark.sql.DataFrame
-import spark.jobs.adapter.SparkWrapper
+import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.common.AppConfig
 
 final class DataSource(sparkWrapper: SparkWrapper, source: AppConfig.Source) {

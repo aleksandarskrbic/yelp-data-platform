@@ -1,9 +1,10 @@
 package spark.jobs.storage
 
 import zio._
-import spark.jobs.adapter.S3ClientWrapper
 import com.amazonaws.services.s3.{AmazonS3, model}
 import com.amazonaws.services.s3.model.DeleteObjectRequest
+import spark.jobs.adapter.s3.S3ClientWrapper
+
 import collection.JavaConverters._
 import scala.util.control.NoStackTrace
 

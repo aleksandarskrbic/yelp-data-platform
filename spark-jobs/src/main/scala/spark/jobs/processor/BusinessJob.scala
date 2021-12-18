@@ -5,9 +5,10 @@ import logstage.LogZIO
 import logstage.LogZIO.log
 import zio.clock.{Clock, currentTime}
 import spark.jobs.storage.DataSource
-import spark.jobs.adapter.SparkWrapper
 import org.apache.spark.sql
 import org.apache.spark.sql.functions.desc
+import spark.jobs.adapter.spark.SparkWrapper
+
 import java.util.concurrent.TimeUnit
 
 final class BusinessJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {

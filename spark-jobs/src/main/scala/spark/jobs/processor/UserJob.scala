@@ -4,9 +4,10 @@ import zio._
 import zio.clock._
 import logstage.LogZIO
 import logstage.LogZIO.log
+import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.model.UserDetails
 import spark.jobs.storage.DataSource
-import spark.jobs.adapter.SparkWrapper
+
 import java.util.concurrent.TimeUnit
 
 final class UserJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {

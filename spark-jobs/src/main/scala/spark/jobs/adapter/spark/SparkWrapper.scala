@@ -1,14 +1,14 @@
-package spark.jobs.adapter
+package spark.jobs.adapter.spark
 
-import zio._
-import zio.duration._
-import zio.clock.Clock
 import logstage.LogZIO
 import logstage.LogZIO.log
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import spark.jobs.common.AppConfig
 import spark.jobs.common.AppConfig.S3Path
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import zio._
+import zio.clock.Clock
+import zio.duration._
 
 final class SparkWrapper(sparkSession: SparkSession, sink: AppConfig.Sink) {
   def withSession[A](fn: SparkSession => Task[A]): Task[A] =

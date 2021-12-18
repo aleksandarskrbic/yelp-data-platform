@@ -1,10 +1,10 @@
-package spark.jobs.adapter
+package spark.jobs.adapter.s3
 
-import zio._
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
 import logstage.LogZIO
 import logstage.LogZIO.log
 import spark.jobs.common.AppConfig
-import com.amazonaws.services.s3.{AmazonS3, AmazonS3ClientBuilder}
+import zio._
 
 final class S3ClientWrapper(storageConfig: AppConfig.Storage) {
   def get: ZIO[LogZIO, Nothing, AmazonS3] =
