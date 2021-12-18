@@ -6,7 +6,6 @@ import izumi.logstage.api.IzLogger
 import izumi.logstage.api.logger.LogRouter
 
 object Logging {
-
   private val router = LogRouter(
     levels = Map(
       "nio.*"        -> Log.Level.Error,

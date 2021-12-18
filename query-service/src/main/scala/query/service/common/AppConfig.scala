@@ -1,4 +1,4 @@
-package trending.businesses.aggregator.common
+package query.service.common
 
 import zio._
 import zio.config.read
@@ -8,7 +8,12 @@ import zio.config.magnolia.DeriveConfigDescriptor
 import com.amazonaws.client.builder.AwsClientBuilder
 import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 
-final case class AppConfig(storage: AppConfig.Storage, source: AppConfig.Source, sink: AppConfig.Sink)
+final case class AppConfig(
+  http: AppConfig.Http,
+  storage: AppConfig.Storage,
+  source: AppConfig.Source,
+  sink: AppConfig.Sink
+)
 
 object AppConfig {
   private val descriptor = DeriveConfigDescriptor.descriptor[AppConfig]
@@ -32,6 +37,7 @@ object AppConfig {
   final case class S3Path(bucket: String, folder: String)
   final case class Source(trendingReviews: S3Path, trendingCheckins: S3Path)
 
+  final case class Http(port: Int)      extends AnyVal
   final case class Sink(bucket: String) extends AnyVal
 
   lazy val live = (for {
@@ -39,4 +45,10 @@ object AppConfig {
     configSource <- ZIO.fromEither(TypesafeConfigSource.fromTypesafeConfig(rawConfig))
     config       <- ZIO.fromEither(read(descriptor.from(configSource)))
   } yield config).toLayer.orDie
+
+  lazy val subLayers =
+    ZLayer.service[AppConfig].map { hasConfig =>
+      val config = hasConfig.get[AppConfig]
+      Has(config.storage.credentials.toAwsCredentials) ++ Has(config.storage.endpointConfiguration) ++ Has(config.http)
+    }
 }

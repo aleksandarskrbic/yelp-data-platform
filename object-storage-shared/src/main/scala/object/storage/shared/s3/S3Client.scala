@@ -2,6 +2,8 @@ package `object`.storage.shared.s3
 
 import zio._
 import zio.clock._
+import zio.stream._
+import zio.blocking._
 import zio.duration._
 import logstage.LogZIO
 import logstage.LogZIO.log
@@ -87,6 +89,15 @@ class S3Client(s3: AmazonS3) {
         ZIO.effect(s3.deleteObject(new DeleteObjectRequest(bucket, objectToDelete)))
       )
     }
+
+  def streamFile(bucket: String, filename: String): ZStream[Blocking, Throwable, String] =
+    ZStream
+      .fromEffect(ZIO.effect(s3.getObject(new GetObjectRequest(bucket, filename))))
+      .flatMap { inputStream =>
+        ZStream
+          .fromInputStream(inputStream.getObjectContent)
+          .aggregate(ZTransducer.utfDecode >>> ZTransducer.splitLines)
+      }
 }
 
 object S3Client {
