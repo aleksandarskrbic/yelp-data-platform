@@ -16,8 +16,8 @@ final class BusinessCheckinJob(sparkWrapper: SparkWrapper, dataSource: DataSourc
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started           <- currentTime(TimeUnit.MILLISECONDS)
-      checkinsDFFiber   <- dataSource.checkins.fork
-      businessesDFFiber <- dataSource.businesses.fork
+      checkinsDFFiber   <- dataSource.checkins().fork
+      businessesDFFiber <- dataSource.businesses().fork
 
       checkinsDF   <- checkinsDFFiber.join
       businessesDF <- businessesDFFiber.join

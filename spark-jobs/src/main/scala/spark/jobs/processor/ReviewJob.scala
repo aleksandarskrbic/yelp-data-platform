@@ -17,7 +17,7 @@ final class ReviewJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
-      reviewsDF <- dataSource.reviews
+      reviewsDF <- dataSource.reviews()
 
       topReviewsFiber   <- topReviews(reviewsDF).fork
       worstReviewsFiber <- worstReviews(reviewsDF).fork

@@ -24,9 +24,9 @@ final class TrendingBusinessJob(
     for {
       started <- currentTime(TimeUnit.MILLISECONDS)
 
-      reviewsDFFiber  <- dataSource.reviews.fork
-      checkinsDFFiber <- dataSource.checkins.fork
-      businessDFFiber <- dataSource.businesses.fork
+      reviewsDFFiber  <- dataSource.reviews().fork
+      checkinsDFFiber <- dataSource.checkins().fork
+      businessDFFiber <- dataSource.businesses().fork
 
       reviewsDF  <- reviewsDFFiber.join
       checkinsDF <- checkinsDFFiber.join

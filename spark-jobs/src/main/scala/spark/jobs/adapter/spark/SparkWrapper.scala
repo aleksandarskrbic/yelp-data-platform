@@ -22,10 +22,17 @@ final class SparkWrapper(sparkSession: SparkSession, sink: AppConfig.Sink) {
   def read(
     path: S3Path,
     format: String = "json",
-    options: Map[String, String] = Map.empty
+    options: Map[String, String] = Map.empty,
+    maybeLimit: Option[Int] = None
   ): ZIO[LogZIO with Clock, Throwable, DataFrame] =
-    ZIO
-      .effect(sparkSession.read.format(format).options(options).load(path.value).cache())
+    ZIO.effect {
+      maybeLimit match {
+        case Some(limit) =>
+          sparkSession.read.format(format).options(options).load(path.value).limit(limit).cache()
+        case None =>
+          sparkSession.read.format(format).options(options).load(path.value).cache()
+      }
+    }
       .retry(Schedule.exponential(100.millis) && Schedule.recurs(10))
       .foldM(
         error => log.error(s"Unable to load $path") *> ZIO.fail(error),

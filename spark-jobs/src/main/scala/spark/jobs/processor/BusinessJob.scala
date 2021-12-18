@@ -15,7 +15,7 @@ final class BusinessJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started    <- currentTime(TimeUnit.MILLISECONDS)
-      businessDF <- dataSource.businesses
+      businessDF <- dataSource.businesses()
 
       businessByReviewFiber <- businessByReview(businessDF).fork
       businessByCityFiber   <- businessByCity(businessDF).fork

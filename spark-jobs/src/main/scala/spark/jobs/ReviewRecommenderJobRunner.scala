@@ -1,6 +1,7 @@
 package spark.jobs
 
 import zio._
+import zio.magic._
 import spark.jobs.storage.DataSource
 import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.common.{AppConfig, Logging}

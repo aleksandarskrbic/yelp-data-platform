@@ -14,7 +14,7 @@ final class UserJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started <- currentTime(TimeUnit.MILLISECONDS)
-      userDF  <- dataSource.users
+      userDF  <- dataSource.users()
       _ <- sparkWrapper.withSession { sparkSession =>
              import sparkSession.implicits._
 
