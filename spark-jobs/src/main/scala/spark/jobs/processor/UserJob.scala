@@ -4,11 +4,10 @@ import zio._
 import zio.clock._
 import logstage.LogZIO
 import logstage.LogZIO.log
-import spark.jobs.adapter.spark.SparkWrapper
+import java.util.concurrent.TimeUnit
 import spark.jobs.model.UserDetails
 import spark.jobs.storage.DataSource
-
-import java.util.concurrent.TimeUnit
+import spark.jobs.adapter.spark.SparkWrapper
 
 final class UserJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =

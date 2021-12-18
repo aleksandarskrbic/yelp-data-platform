@@ -1,5 +1,6 @@
 package spark.jobs.processor
 
+import `object`.storage.shared.s3.S3Client
 import zio._
 import zio.clock._
 import logstage.LogZIO
@@ -10,14 +11,14 @@ import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.common.AppConfig
 import spark.jobs.common.AppConfig.S3Path
 import spark.jobs.model.{Checkin, Review}
-import spark.jobs.storage.{DataSource, FileRepository}
+import spark.jobs.storage.DataSource
 
 import java.util.concurrent.TimeUnit
 
 final class TrendingBusinessJob(
   sparkWrapper: SparkWrapper,
   dataSource: DataSource,
-  fileRepository: FileRepository,
+  s3Client: S3Client,
   storage: AppConfig.Storage
 ) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
@@ -75,7 +76,7 @@ final class TrendingBusinessJob(
 
       _ <- reviewFilteredDFFiber.join
 
-      trendingReviewsPath <- fileRepository.listBucket(storage.bucket, "trending_business_review")
+      trendingReviewsPath <- s3Client.listBucket(storage.bucket, "trending_business_review")
 
       fullPath = S3Path(s"s3a://${storage.bucket}/$trendingReviewsPath")
 
@@ -115,15 +116,15 @@ final class TrendingBusinessJob(
 
            }
 
-      _ <- fileRepository.deleteFiles(storage.bucket, "trending_business_review")
+      _ <- s3Client.deleteFiles(storage.bucket, "trending_business_review")
     } yield ()
 }
 
 object TrendingBusinessJob {
   lazy val live = (for {
-    sparkWrapper   <- ZIO.service[SparkWrapper]
-    dataSource     <- ZIO.service[DataSource]
-    fileRepository <- ZIO.service[FileRepository]
-    appConfig      <- ZIO.service[AppConfig]
-  } yield new TrendingBusinessJob(sparkWrapper, dataSource, fileRepository, appConfig.storage)).toLayer
+    sparkWrapper <- ZIO.service[SparkWrapper]
+    dataSource   <- ZIO.service[DataSource]
+    s3Client     <- ZIO.service[S3Client]
+    appConfig    <- ZIO.service[AppConfig]
+  } yield new TrendingBusinessJob(sparkWrapper, dataSource, s3Client, appConfig.storage)).toLayer
 }
