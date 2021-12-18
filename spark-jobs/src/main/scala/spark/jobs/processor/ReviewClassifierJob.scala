@@ -15,14 +15,13 @@ final class ReviewClassifierJob(sparkWrapper: SparkWrapper, dataSource: DataSour
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
-      reviewsDF <- dataSource.reviews()
+      reviewsDF <- dataSource.reviews(limit = Some(1000000))
 
-      parts <- sparkWrapper.suspend(reviewsDF.randomSplit(Array(0.5, 0.5), 42))
-      model <- sparkWrapper.suspend(pipeline.fit(parts.head))
+      model <- sparkWrapper.suspend(pipeline.fit(reviewsDF))
       _ <- sparkWrapper.suspend {
              model.write
                .overwrite()
-               .save(sparkWrapper.destination("review_classifier_model"))
+               .save(sparkWrapper.destination("model/review_classifier_model"))
            }
 
       finished <- currentTime(TimeUnit.MILLISECONDS)

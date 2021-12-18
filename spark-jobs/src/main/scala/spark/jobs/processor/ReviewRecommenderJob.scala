@@ -14,7 +14,7 @@ final class ReviewRecommenderJob(sparkWrapper: SparkWrapper, dataSource: DataSou
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
-      reviewsDF <- dataSource.reviews(limit = Some(30000))
+      reviewsDF <- dataSource.reviews(limit = Some(100000))
       model     <- sparkWrapper.suspend(pipeline.fit(reviewsDF))
       _ <- sparkWrapper.suspend {
              model.write
