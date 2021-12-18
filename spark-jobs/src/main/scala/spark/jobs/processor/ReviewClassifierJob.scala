@@ -5,7 +5,6 @@ import zio.clock._
 import logstage.LogZIO
 import logstage.LogZIO.log
 import org.apache.spark.ml.{Pipeline, PipelineModel}
-import org.apache.spark.mllib.evaluation.BinaryClassificationMetrics
 import org.apache.spark.sql
 import spark.jobs.adapter.spark.SparkWrapper
 import spark.jobs.adapter.spark.ml.SparkMLComponent
@@ -14,7 +13,7 @@ import spark.jobs.storage.DataSource
 
 import java.util.concurrent.TimeUnit
 
-class ReviewClassifierJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
+final class ReviewClassifierJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
