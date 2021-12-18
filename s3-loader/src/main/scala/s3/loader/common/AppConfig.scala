@@ -14,7 +14,7 @@ object AppConfig {
   private val descriptor = DeriveConfigDescriptor.descriptor[AppConfig]
 
   final case class Credentials(accessKey: String, secretKey: String) {
-    def toAwsCredentials = new AWSStaticCredentialsProvider(
+    def toAwsCredentials: AWSStaticCredentialsProvider = new AWSStaticCredentialsProvider(
       new BasicAWSCredentials(accessKey, secretKey)
     )
   }
@@ -28,7 +28,7 @@ object AppConfig {
     serviceEndpoint: String,
     credentials: Credentials
   ) {
-    def endpointConfiguration =
+    def endpointConfiguration: AwsClientBuilder.EndpointConfiguration =
       new AwsClientBuilder.EndpointConfiguration(serviceEndpoint, region)
   }
 
