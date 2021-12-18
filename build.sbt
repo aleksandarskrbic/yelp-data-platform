@@ -4,6 +4,7 @@ ThisBuild / organization     := "com.example"
 ThisBuild / organizationName := "example"
 
 val ZioVersion       = "1.0.12"
+val ZioHttpVersion   = "1.0.0.0-RC18"
 val ZioConfigVersion = "1.0.10"
 val LogStageVersion  = "1.0.8"
 val SparkVersion     = "3.2.0"
@@ -53,6 +54,24 @@ lazy val `query-service` = (project in file("query-service"))
     name := "query-service",
     libraryDependencies ++= Seq(
       "dev.zio"              %% "zio"                      % ZioVersion,
+      "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
+      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
+      "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
+      "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
+      "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
+      "io.7mind.izumi"       %% "logstage-adapter-slf4j"   % LogStageVersion,
+      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
+      "dev.zio"              %% "zio-test"                 % ZioVersion % Test
+    ),
+    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+  )
+
+lazy val `inference-service` = (project in file("inference-service"))
+  .settings(
+    name := "inference-service",
+    libraryDependencies ++= Seq(
+      "dev.zio"              %% "zio"                      % ZioVersion,
+      "io.d11"               %% "zhttp"                    % ZioHttpVersion,
       "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
       "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
       "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
