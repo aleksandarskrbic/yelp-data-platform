@@ -17,13 +17,17 @@ final class ReviewJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
     for {
       started   <- currentTime(TimeUnit.MILLISECONDS)
       reviewsDF <- dataSource.reviews
-      trf       <- topReviews(reviewsDF).fork
-      wrf       <- worstReviews(reviewsDF).fork
-      _         <- trf.join
-      _         <- wrf.join
-      finished  <- currentTime(TimeUnit.MILLISECONDS)
-      total      = (finished - started) / 1000
-      _         <- log.info(s"$getClass finished in ${total}s")
+
+      topReviewsFiber   <- topReviews(reviewsDF).fork
+      worstReviewsFiber <- worstReviews(reviewsDF).fork
+
+      _ <- topReviewsFiber.join
+      _ <- worstReviewsFiber.join
+
+      finished <- currentTime(TimeUnit.MILLISECONDS)
+
+      total = (finished - started) / 1000
+      _    <- log.info(s"$getClass finished in ${total}s")
     } yield ()
 
   private def topReviews(reviewDF: sql.DataFrame): Task[Unit] =
@@ -35,9 +39,7 @@ final class ReviewJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
   private def wordCounts(reviewDF: sql.DataFrame, topReviews: Boolean): Task[Unit] = {
     val stops = StopWordsRemover.loadDefaultStopWords("english")
 
-    val filterExp =
-      if (topReviews) "stars > 3"
-      else "stars <= 3"
+    val filterExp = if (topReviews) "stars > 3" else "stars <= 3"
 
     val path =
       if (topReviews) sparkWrapper.destination("top_reviews")
@@ -45,9 +47,9 @@ final class ReviewJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
 
     for {
       _ <- sparkWrapper.withSession { sparkSession =>
-             sparkWrapper.suspend {
-               import sparkSession.implicits._
+             import sparkSession.implicits._
 
+             sparkWrapper.suspend {
                reviewDF
                  .select("text", "stars")
                  .filter(filterExp)

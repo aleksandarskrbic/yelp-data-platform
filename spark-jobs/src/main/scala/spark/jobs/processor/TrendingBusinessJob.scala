@@ -33,8 +33,9 @@ final class TrendingBusinessJob(
 
       _        <- trendingBusiness(reviewsDF, checkinsDF, businessDF)
       finished <- currentTime(TimeUnit.MILLISECONDS)
-      total     = (finished - started) / 1000
-      _        <- log.info(s"job -> ${getClass.getCanonicalName} finished in ${total}s")
+
+      total = (finished - started) / 1000
+      _    <- log.info(s"job -> ${getClass.getCanonicalName} finished in ${total}s")
     } yield ()
 
   private def trendingBusiness(

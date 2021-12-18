@@ -15,9 +15,9 @@ final class UserJob(sparkWrapper: SparkWrapper, dataSource: DataSource) {
       started <- currentTime(TimeUnit.MILLISECONDS)
       userDF  <- dataSource.users
       _ <- sparkWrapper.withSession { sparkSession =>
-             sparkWrapper.suspend {
-               import sparkSession.implicits._
+             import sparkSession.implicits._
 
+             sparkWrapper.suspend {
                userDF
                  .select("user_id", "review_count", "average_stars", "yelping_since", "friends")
                  .filter(!_.anyNull)

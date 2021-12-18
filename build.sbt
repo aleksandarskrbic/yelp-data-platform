@@ -48,9 +48,9 @@ lazy val `s3-loader` = (project in file("s3-loader"))
     testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
   )
 
-lazy val `trending-businesses-aggregator` = (project in file("trending-businesses-aggregator"))
+lazy val `query-service` = (project in file("query-service"))
   .settings(
-    name := "trending-businesses-aggregator",
+    name := "query-service",
     libraryDependencies ++= Seq(
       "dev.zio"              %% "zio"                      % ZioVersion,
       "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
