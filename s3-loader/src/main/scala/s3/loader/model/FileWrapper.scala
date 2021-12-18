@@ -1,7 +1,7 @@
 package s3.loader.model
 
+import FileSize._
 import java.io.File
-import s3.loader.model.FileSize._
 
 sealed trait FileSize
 object FileSize {

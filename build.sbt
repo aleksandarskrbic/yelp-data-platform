@@ -9,7 +9,7 @@ val ZioConfigVersion = "1.0.10"
 val LogStageVersion  = "1.0.8"
 val SparkVersion     = "3.2.0"
 val HadoopVersion    = "3.3.1"
-val AwsSdkVersion    = "1.12.124"
+val AwsSdkVersion    = "1.12.129"
 
 lazy val `spark-jobs` = (project in file("spark-jobs"))
   .settings(
@@ -17,7 +17,6 @@ lazy val `spark-jobs` = (project in file("spark-jobs"))
     libraryDependencies ++= Seq(
       "dev.zio"              %% "zio"                      % ZioVersion,
       "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
-      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
       "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
       "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
       "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
@@ -31,23 +30,22 @@ lazy val `spark-jobs` = (project in file("spark-jobs"))
       "org.apache.hadoop"     % "hadoop-client"            % HadoopVersion
     )
   )
+  .dependsOn(`object-storage-shared`)
 
-lazy val `s3-loader` = (project in file("s3-loader"))
+lazy val `s3-loader` = (project in file("object.storage.shared.s3-loader"))
   .settings(
-    name := "s3-loader",
+    name := "object.storage.shared.s3-loader",
     libraryDependencies ++= Seq(
       "dev.zio"              %% "zio"                      % ZioVersion,
       "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
-      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
       "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
       "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
       "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
       "io.7mind.izumi"       %% "logstage-adapter-slf4j"   % LogStageVersion,
-      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
-      "dev.zio"              %% "zio-test"                 % ZioVersion % Test
-    ),
-    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion
+    )
   )
+  .dependsOn(`object-storage-shared`)
 
 lazy val `query-service` = (project in file("query-service"))
   .settings(
@@ -55,16 +53,14 @@ lazy val `query-service` = (project in file("query-service"))
     libraryDependencies ++= Seq(
       "dev.zio"              %% "zio"                      % ZioVersion,
       "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
-      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
       "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
       "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
       "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
       "io.7mind.izumi"       %% "logstage-adapter-slf4j"   % LogStageVersion,
-      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
-      "dev.zio"              %% "zio-test"                 % ZioVersion % Test
-    ),
-    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion
+    )
   )
+  .dependsOn(`object-storage-shared`)
 
 lazy val `inference-service` = (project in file("inference-service"))
   .settings(
@@ -73,30 +69,23 @@ lazy val `inference-service` = (project in file("inference-service"))
       "dev.zio"              %% "zio"                      % ZioVersion,
       "io.d11"               %% "zhttp"                    % ZioHttpVersion,
       "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
-      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
       "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
       "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
       "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
       "io.7mind.izumi"       %% "logstage-adapter-slf4j"   % LogStageVersion,
-      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
-      "dev.zio"              %% "zio-test"                 % ZioVersion % Test
-    ),
-    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion
+    )
   )
+  .dependsOn(`object-storage-shared`)
 
 lazy val `object-storage-shared` = (project in file("object-storage-shared"))
   .settings(
     name := "object-storage-shared",
     libraryDependencies ++= Seq(
-      "dev.zio"              %% "zio"                      % ZioVersion,
-      "io.github.kitlangton" %% "zio-magic"                % "0.3.11",
-      "com.amazonaws"         % "aws-java-sdk-s3"          % AwsSdkVersion,
-      "dev.zio"              %% "zio-config-magnolia"      % ZioConfigVersion,
-      "dev.zio"              %% "zio-config-typesafe"      % ZioConfigVersion,
-      "io.7mind.izumi"       %% "logstage-core"            % LogStageVersion,
-      "io.7mind.izumi"       %% "logstage-adapter-slf4j"   % LogStageVersion,
-      "io.7mind.izumi"       %% "logstage-rendering-circe" % LogStageVersion,
-      "dev.zio"              %% "zio-test"                 % ZioVersion % Test
-    ),
-    testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+      "dev.zio"        %% "zio"                                   % ZioVersion,
+      "com.amazonaws"   % "aws-java-sdk-object.storage.shared.s3" % AwsSdkVersion,
+      "io.7mind.izumi" %% "logstage-core"                         % LogStageVersion,
+      "io.7mind.izumi" %% "logstage-adapter-slf4j"                % LogStageVersion,
+      "io.7mind.izumi" %% "logstage-rendering-circe"              % LogStageVersion
+    )
   )

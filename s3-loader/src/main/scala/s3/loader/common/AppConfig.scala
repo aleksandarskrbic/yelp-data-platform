@@ -37,4 +37,10 @@ object AppConfig {
     configSource <- ZIO.fromEither(TypesafeConfigSource.fromTypesafeConfig(rawConfig))
     config       <- ZIO.fromEither(read(descriptor.from(configSource)))
   } yield config).toLayer.orDie
+
+  lazy val subLayers =
+    ZLayer.service[AppConfig].map { hasConfig =>
+      val config = hasConfig.get[AppConfig]
+      Has(config.storage.credentials.toAwsCredentials) ++ Has(config.storage.endpointConfiguration)
+    }
 }

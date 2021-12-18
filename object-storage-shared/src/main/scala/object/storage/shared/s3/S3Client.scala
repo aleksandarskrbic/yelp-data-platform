@@ -1,17 +1,15 @@
-package s3
+package `object`.storage.shared.s3
 
 import zio._
 import zio.clock._
 import zio.duration._
 import logstage.LogZIO
 import logstage.LogZIO.log
-
 import collection.JavaConverters._
+import scala.util.control.NoStackTrace
 import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.AmazonS3
-import s3.model.{UploadMetadata, UploadPart}
-
-import scala.util.control.NoStackTrace
+import `object`.storage.shared.s3.model.{UploadMetadata, UploadPart}
 
 class S3Client(s3: AmazonS3) {
   def createBucketIfNotExists(

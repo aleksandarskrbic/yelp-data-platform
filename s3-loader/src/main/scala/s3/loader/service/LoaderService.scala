@@ -1,15 +1,17 @@
 package s3.loader.service
 
 import zio._
+import zio.clock._
 import zio.stream._
 import java.io.File
+import logstage.LogZIO
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
 import s3.loader.model.FileWrapper
-import s3.loader.storage.S3Client
+import `object`.storage.shared.s3.S3Client
 
 final class LoaderService(appConfig: AppConfig, s3Client: S3Client, uploadService: UploadService) {
-  def start =
+  def start: ZIO[LogZIO with Clock, Throwable, Unit] =
     for {
       _ <- s3Client
              .createBucketIfNotExists(appConfig.storage.bucket)
@@ -25,7 +27,8 @@ final class LoaderService(appConfig: AppConfig, s3Client: S3Client, uploadServic
              .runDrain
     } yield ()
 
-  private def createRootDirectory: File = new File(appConfig.upload.directory)
+  private def createRootDirectory: File =
+    new File(appConfig.upload.directory)
 }
 
 object LoaderService {

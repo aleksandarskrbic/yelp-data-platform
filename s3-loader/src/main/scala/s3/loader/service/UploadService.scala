@@ -7,12 +7,12 @@ import java.io.File
 import logstage.LogZIO
 import logstage.LogZIO.log
 import s3.loader.common.AppConfig
-import s3.loader.storage.S3Client
-import com.amazonaws.services.s3.model._
-import s3.loader.model.{FileSize, FileWrapper, PartDetails, UploadMetadata, UploadPart}
-
 import java.util.concurrent.TimeUnit
 import scala.collection.JavaConverters._
+import com.amazonaws.services.s3.model._
+import `object`.storage.shared.s3.S3Client
+import s3.loader.model.{FileSize, FileWrapper, PartDetails}
+import `object`.storage.shared.s3.model.{UploadMetadata, UploadPart}
 
 final class UploadService(s3Client: S3Client, storageConfig: AppConfig.Storage) {
   def upload(fileWrapper: FileWrapper): ZIO[LogZIO with Clock, Throwable, Unit] =

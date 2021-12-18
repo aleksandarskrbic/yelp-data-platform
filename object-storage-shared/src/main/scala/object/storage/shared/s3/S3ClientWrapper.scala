@@ -1,4 +1,4 @@
-package s3
+package `object`.storage.shared.s3
 
 import zio._
 import logstage.LogZIO
@@ -26,9 +26,8 @@ final class S3ClientWrapper(
 }
 
 object S3ClientWrapper {
-  def live(
-    awsCredentials: AWSStaticCredentialsProvider,
-    endpointConfiguration: AwsClientBuilder.EndpointConfiguration
-  ): ZLayer[LogZIO, Nothing, Has[AmazonS3]] =
-    new S3ClientWrapper(awsCredentials, endpointConfiguration).get.toLayer
+  lazy val live = (for {
+    awsCredentials        <- ZIO.service[AWSStaticCredentialsProvider]
+    endpointConfiguration <- ZIO.service[AwsClientBuilder.EndpointConfiguration]
+  } yield new S3ClientWrapper(awsCredentials, endpointConfiguration)).toLayer
 }

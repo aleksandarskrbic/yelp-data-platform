@@ -1,4 +1,4 @@
-package s3.model
+package `object`.storage.shared.s3.model
 
 import com.amazonaws.services.s3.model.UploadPartRequest
 
