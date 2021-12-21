@@ -41,7 +41,7 @@ object AppConfig {
   final case class Sink(bucket: String) extends AnyVal
 
   lazy val live = (for {
-    rawConfig    <- ZIO.effect(ConfigFactory.load().getConfig("trending-businesses-aggregator"))
+    rawConfig    <- ZIO.effect(ConfigFactory.load().getConfig("query-service"))
     configSource <- ZIO.fromEither(TypesafeConfigSource.fromTypesafeConfig(rawConfig))
     config       <- ZIO.fromEither(read(descriptor.from(configSource)))
   } yield config).toLayer.orDie

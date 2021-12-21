@@ -68,18 +68,14 @@ class S3Client(s3: AmazonS3) {
         result => ZIO.succeed(result)
       )
 
-  def listBucket(bucket: String, folder: String): Task[String] =
-    ZIO.effect(s3.listObjects(bucket)).flatMap { objectListing =>
-      val objectSummaries = objectListing.getObjectSummaries.asScala.toList
-      objectSummaries
-        .map(_.getKey)
-        .find { fullname =>
-          fullname.contains(folder) && fullname.takeRight(3) == "csv"
-        } match {
-        case Some(filename) => ZIO.succeed(filename)
-        case None           => ZIO.fail(S3Client.Error("File not found."))
-      }
-    }
+  def listBucket(bucket: String, folder: String): Task[Option[String]] =
+    for {
+      listing   <- ZIO.effect(s3.listObjects(bucket))
+      filenames <- ZIO.effect(Chunk.fromIterable(listing.getObjectSummaries.asScala.map(_.getKey)))
+      filename <- ZIO.filterPar(filenames) { fullname =>
+                    ZIO.succeed(fullname.contains(folder) && fullname.takeRight(3) == "csv")
+                  }
+    } yield filename.headOption
 
   def deleteFiles(bucket: String, folder: String): Task[Unit] =
     ZIO.effect(s3.listObjects(bucket)).flatMap { objectListing =>
