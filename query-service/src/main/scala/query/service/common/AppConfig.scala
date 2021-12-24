@@ -10,9 +10,7 @@ import com.amazonaws.auth.{AWSStaticCredentialsProvider, BasicAWSCredentials}
 
 final case class AppConfig(
   http: AppConfig.Http,
-  storage: AppConfig.Storage,
-  source: AppConfig.Source,
-  sink: AppConfig.Sink
+  storage: AppConfig.Storage
 )
 
 object AppConfig {
@@ -34,11 +32,7 @@ object AppConfig {
       new AwsClientBuilder.EndpointConfiguration(serviceEndpoint, region)
   }
 
-  final case class S3Path(bucket: String, folder: String)
-  final case class Source(trendingReviews: S3Path, trendingCheckins: S3Path)
-
-  final case class Http(port: Int)      extends AnyVal
-  final case class Sink(bucket: String) extends AnyVal
+  final case class Http(port: Int) extends AnyVal
 
   lazy val live = (for {
     rawConfig    <- ZIO.effect(ConfigFactory.load().getConfig("query-service"))
