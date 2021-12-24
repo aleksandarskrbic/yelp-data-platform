@@ -16,6 +16,9 @@ final class FileLoader(bucket: String, s3Client: S3Client) {
   def businessByIsOpen(): ZStream[Blocking, Throwable, OpenedBusinessStats] =
     streamCSV("business_by_is_open").aggregate(Transducers.businessByIsOpen)
 
+  def trendingBusinesses(): ZStream[Blocking, Throwable, OpenedBusinessStats] =
+    streamCSV("trending_businesses").aggregate(Transducers.businessByIsOpen)
+
   private def streamCSV(
     filename: String,
     dropHead: Boolean = true

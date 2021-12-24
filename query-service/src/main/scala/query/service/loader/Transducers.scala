@@ -25,6 +25,14 @@ object Transducers {
       }
     }
 
+  val trendingBusinesses: ZTransducer[Any, Throwable, String, Business] =
+    csvTransducer { line =>
+      ZIO.effect(line.split(",").toList).map {
+        case businessId :: name :: city :: positiveReviewCount :: checkinCount :: _ =>
+          Try(Business(businessId, name, city, positiveReviewCount.toLong, checkinCount.toLong)).toOption
+      }
+    }
+
   private def csvTransducer[O](fn: String => Task[Option[O]]): ZTransducer[Any, Throwable, String, O] =
     ZTransducer.fromFunctionM[Any, Throwable, String, Option[O]](fn).filter(_.isDefined).map(_.get)
 }

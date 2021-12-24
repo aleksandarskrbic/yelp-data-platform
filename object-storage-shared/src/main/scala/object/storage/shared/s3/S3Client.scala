@@ -68,14 +68,14 @@ class S3Client(s3: AmazonS3) {
         result => ZIO.succeed(result)
       )
 
-  def listBucket(bucket: String, folder: String): Task[Option[String]] =
-    for {
+  def listBucket(bucket: String, folder: String): IO[S3Client.Error, Option[String]] =
+    (for {
       listing   <- ZIO.effect(s3.listObjects(bucket))
       filenames <- ZIO.effect(Chunk.fromIterable(listing.getObjectSummaries.asScala.map(_.getKey)))
       filename <- ZIO.filterPar(filenames) { fullname =>
                     ZIO.succeed(fullname.contains(folder) && fullname.takeRight(3) == "csv")
                   }
-    } yield filename.headOption
+    } yield filename.headOption).mapError(t => S3Client.Error(t.getMessage))
 
   def deleteFiles(bucket: String, folder: String): Task[Unit] =
     ZIO.effect(s3.listObjects(bucket)).flatMap { objectListing =>
@@ -86,7 +86,7 @@ class S3Client(s3: AmazonS3) {
       )
     }
 
-  def streamFile(bucket: String, filename: String): ZStream[Blocking, Throwable, String] =
+  def streamFile(bucket: String, filename: String): ZStream[Blocking, S3Client.Error, String] =
     ZStream
       .fromEffect(ZIO.effect(s3.getObject(new GetObjectRequest(bucket, filename))))
       .flatMap { inputStream =>
@@ -94,6 +94,7 @@ class S3Client(s3: AmazonS3) {
           .fromInputStream(inputStream.getObjectContent)
           .aggregate(ZTransducer.utfDecode >>> ZTransducer.splitLines)
       }
+      .mapError(t => S3Client.Error(t.getMessage))
 }
 
 object S3Client {
