@@ -1,19 +1,19 @@
 package query.service
 
-import `object`.storage.shared.s3.{S3Client, S3ClientWrapper}
-import logstage.LogZIO
-import logstage.LogZIO.log
-import query.service.common.{AppConfig, Logging}
-import query.service.loader.FileLoader
 import zio._
 import zio.magic._
 import zio.stream._
+import logstage.LogZIO
+import logstage.LogZIO.log
+import query.service.loader.FileLoader
+import query.service.common.{AppConfig, Logging}
+import `object`.storage.shared.s3.{S3Client, S3ClientWrapper}
 
 object QueryServiceApp extends zio.App {
   override def run(args: List[String]): URIO[ZEnv, ExitCode] =
     (for {
       fileLoader <- ZIO.service[FileLoader]
-      _          <- fileLoader.businessByIsOpen().foreach(e => ZIO.effect(println(e)))
+      c          <- fileLoader.businessCheckinDetails.runCollect
     } yield ())
       .inject(
         AppConfig.live,

@@ -3,21 +3,29 @@ package query.service.loader
 import zio._
 import zio.stream._
 import zio.blocking._
+import query.service.model._
+import query.service.common.AppConfig
 import scala.util.control.NoStackTrace
 import `object`.storage.shared.s3.S3Client
-import query.service.common.AppConfig
-import query.service.model.{BusinessByCityCount, OpenedBusinessStats}
 
 final class FileLoader(bucket: String, s3Client: S3Client) {
-
-  def businessByCityStream(): ZStream[Blocking, Throwable, BusinessByCityCount] =
+  def businessByCityStream: ZStream[Blocking, Throwable, BusinessByCityCount] =
     streamCSV("business_by_city").aggregate(Transducers.businessByCityCount)
 
-  def businessByIsOpen(): ZStream[Blocking, Throwable, OpenedBusinessStats] =
+  def businessByIsOpen: ZStream[Blocking, Throwable, OpenedBusinessStats] =
     streamCSV("business_by_is_open").aggregate(Transducers.businessByIsOpen)
 
-  def trendingBusinesses(): ZStream[Blocking, Throwable, OpenedBusinessStats] =
-    streamCSV("trending_businesses").aggregate(Transducers.businessByIsOpen)
+  def trendingBusinesses: ZStream[Blocking, Throwable, Business] =
+    streamCSV("trending_businesses").aggregate(Transducers.trendingBusinesses)
+
+  def checkinStats: ZStream[Blocking, Throwable, CheckinStats] =
+    streamCSV("checkin_stats").aggregate(Transducers.checkinStats)
+
+  def userDetails: ZStream[Blocking, Throwable, UserDetails] =
+    streamCSV("user_details").aggregate(Transducers.userDetails)
+
+  def businessCheckinDetails: ZStream[Blocking, Throwable, BusinessCheckinDetails] =
+    streamCSV("business_checkins").aggregate(Transducers.businessCheckinDetails)
 
   private def streamCSV(
     filename: String,
@@ -37,7 +45,7 @@ final class FileLoader(bucket: String, s3Client: S3Client) {
 }
 
 object FileLoader {
-  case class Error(message: String) extends NoStackTrace
+  final case class Error(message: String) extends NoStackTrace
 
   lazy val live = (for {
     appConfig <- ZIO.service[AppConfig]

@@ -27,9 +27,44 @@ object Transducers {
 
   val trendingBusinesses: ZTransducer[Any, Throwable, String, Business] =
     csvTransducer { line =>
+      ZIO.effect(line.split(",").toList).map { case _ :: name :: city :: positiveReviewCount :: checkinCount :: _ =>
+        Try(Business(name, city, positiveReviewCount.toLong, checkinCount.toLong)).toOption
+      }
+    }
+
+  val checkinStats: ZTransducer[Any, Throwable, String, CheckinStats] =
+    csvTransducer { line =>
+      ZIO.effect(line.split(",").toList).map { case _ :: _ :: year :: month :: day :: hour :: _ =>
+        Try(CheckinStats(year.toInt, month.toInt, day.toInt, hour.toInt)).toOption
+      }
+    }
+
+  val userDetails: ZTransducer[Any, Throwable, String, UserDetails] =
+    csvTransducer { line =>
       ZIO.effect(line.split(",").toList).map {
-        case businessId :: name :: city :: positiveReviewCount :: checkinCount :: _ =>
-          Try(Business(businessId, name, city, positiveReviewCount.toLong, checkinCount.toLong)).toOption
+        case _ :: reviewCount :: averageStars :: yelpingFor :: friendsCount :: _ =>
+          Try(UserDetails(reviewCount.toLong, averageStars.toInt, yelpingFor.toInt, friendsCount.toInt)).toOption
+      }
+    }
+
+  val businessCheckinDetails: ZTransducer[Any, Throwable, String, BusinessCheckinDetails] =
+    csvTransducer { line =>
+      ZIO.effect(line.split(",").toList).map {
+        case name :: city :: isOpen :: reviewCount :: stars :: checkinCount :: _ =>
+          Try {
+            val businessCheckinDetails = BusinessCheckinDetails(
+              name,
+              city,
+              isOpen = true,
+              reviewCount.toLong,
+              stars.toDouble,
+              checkinCount.toLong
+            )
+            isOpen match {
+              case "1" => businessCheckinDetails
+              case "0" => businessCheckinDetails.copy(isOpen = false)
+            }
+          }.toOption
       }
     }
 
